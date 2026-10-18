@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/CmSecurityService.Tests/CmSecurityService.Tests.csproj" />
+    <Project Path="backend/CmSecurityService/CmSecurityService.csproj" />
+  </Folder>
+</Solution>

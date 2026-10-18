@@ -1,0 +1,6 @@
+@CmSecurityService_HostAddress = http://localhost:5228
+
+GET {{CmSecurityService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
