@@ -4,3 +4,31 @@ GET {{CmSecurityService_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+### View Incidents (#216)
+GET {{CmSecurityService_HostAddress}}/incidents
+Accept: application/json
+
+###
+GET {{CmSecurityService_HostAddress}}/incidents?status=UnderInvestigation
+Accept: application/json
+
+###
+GET {{CmSecurityService_HostAddress}}/incidents?type=Theft&from=2026-10-15&to=2026-10-21&page=1&pageSize=5
+Accept: application/json
+
+###
+GET {{CmSecurityService_HostAddress}}/incidents/3
+Accept: application/json
+
+###
+# Expect 404
+GET {{CmSecurityService_HostAddress}}/incidents/999
+Accept: application/json
+
+###
+# Expect 400
+GET {{CmSecurityService_HostAddress}}/incidents?status=Pending&pageSize=500
+Accept: application/json
+
+###
