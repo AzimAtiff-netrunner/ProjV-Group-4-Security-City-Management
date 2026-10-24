@@ -20,6 +20,14 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
+app.MapGet("/health", () =>
+{
+    return Results.Ok(new
+    {
+        status = "Healthy"
+    });
+});
+
 app.MapControllers();
 
 app.Run();
