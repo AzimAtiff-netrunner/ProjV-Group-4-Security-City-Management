@@ -39,4 +39,6 @@ public interface IIncidentQueryService
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>The incident, or null if no incident has that id.</returns>
     Task<IncidentDto?> GetIncidentByIdAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<IncidentDto> AddIncidentAsync(string title, string description, string incidentType, string status, string location);
 }

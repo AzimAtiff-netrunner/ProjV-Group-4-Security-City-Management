@@ -4,12 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace CmSecurityService.Controllers;
 
 /// <summary>
-/// View police incidents (user story #216).
+/// Police incidents management (integrating US 216 and US 217).
 /// </summary>
 /// <remarks>
-/// Read-only endpoints for officers and other City Management services
-/// (e.g. Residence checking whether a case is under investigation).
-/// Creating incidents is handled by Register police incidents (#217).
+/// Provides read queries and retrieval for police incidents (#216), 
+/// as well as new incident reporting and registration (#217).
 /// </remarks>
 [ApiController]
 [Route("incidents")]
@@ -28,7 +27,18 @@ public class IncidentsController : ControllerBase
     }
 
     /// <summary>
-    /// Lists police incidents, newest first, with optional filters and paging.
+    /// Payload structure for registering a new incident (US 217).
+    /// </summary>
+    public record CreateIncidentRequest(
+        string Title,
+        string Description,
+        string IncidentType,
+        string Location,
+        string? Status
+    );
+
+    /// <summary>
+    /// Lists police incidents, newest first, with optional filters and paging (US 216).
     /// </summary>
     /// <param name="query">
     /// Filters: status (Open, UnderInvestigation, Closed), type, from, to (dates),
@@ -63,7 +73,7 @@ public class IncidentsController : ControllerBase
     }
 
     /// <summary>
-    /// Gets one police incident by id.
+    /// Gets one police incident by id (US 216).
     /// </summary>
     /// <param name="id">Incident identifier.</param>
     /// <param name="cancellationToken">Cancelled if the caller disconnects.</param>
@@ -71,6 +81,7 @@ public class IncidentsController : ControllerBase
     /// <response code="200">The incident.</response>
     /// <response code="404">No incident has this id.</response>
     [HttpGet("{id:int}")]
+    [ActionName(nameof(GetIncidentById))]
     [ProducesResponseType(typeof(IncidentDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IncidentDto>> GetIncidentById(int id, CancellationToken cancellationToken)
@@ -87,5 +98,39 @@ public class IncidentsController : ControllerBase
         }
 
         return Ok(incident);
+    }
+
+    /// <summary>
+    /// Registers a new police incident (US 217).
+    /// </summary>
+    /// <param name="request">Incident payload containing title, description, category, and location.</param>
+    /// <returns>201 Created with the registered incident and location header.</returns>
+    /// <response code="201">Incident successfully created.</response>
+    /// <response code="400">Invalid payload submitted.</response>
+    [HttpPost]
+    [ProducesResponseType(typeof(IncidentDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IncidentDto>> RegisterIncident([FromBody] CreateIncidentRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Description))
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Validation Failed",
+                Detail = "Title and Description are required."
+            });
+        }
+
+        var status = string.IsNullOrWhiteSpace(request.Status) ? "Open" : request.Status;
+        var created = await _incidents.AddIncidentAsync(
+            request.Title,
+            request.Description,
+            request.IncidentType ?? "General",
+            status,
+            request.Location ?? "Unspecified"
+        );
+
+        return CreatedAtAction(nameof(GetIncidentById), new { id = created.Id }, created);
     }
 }

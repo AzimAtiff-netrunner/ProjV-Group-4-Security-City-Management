@@ -36,7 +36,8 @@ public class InMemoryIncidentQueryService : IIncidentQueryService
         public bool IsDeleted { get; set; }
     }
 
-    private readonly IReadOnlyList<IncidentRecord> _records;
+    private readonly List<IncidentRecord> _records;
+    private readonly object _lock = new();
 
     /// <summary>
     /// Creates the service with the built-in demo seed data.
@@ -62,48 +63,88 @@ public class InMemoryIncidentQueryService : IIncidentQueryService
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        IEnumerable<IncidentRecord> query = _records.Where(r => !r.IsDeleted);
-
-        if (status.HasValue)
+        lock (_lock)
         {
-            query = query.Where(r => r.Status == status.Value);
+            IEnumerable<IncidentRecord> query = _records.Where(r => !r.IsDeleted);
+
+            if (status.HasValue)
+            {
+                query = query.Where(r => r.Status == status.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(type))
+            {
+                query = query.Where(r => string.Equals(r.IncidentType, type.Trim(), StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (from.HasValue)
+            {
+                query = query.Where(r => r.ReportedAt >= from.Value);
+            }
+
+            if (to.HasValue)
+            {
+                var end = to.Value.TimeOfDay == TimeSpan.Zero ? to.Value.AddDays(1) : to.Value.AddTicks(1);
+                query = query.Where(r => r.ReportedAt < end);
+            }
+
+            var matches = query.OrderByDescending(r => r.ReportedAt).ThenByDescending(r => r.Id).ToList();
+
+            var result = new PagedResult<IncidentDto>
+            {
+                Items = matches.Skip((page - 1) * pageSize).Take(pageSize).Select(ToDto).ToList(),
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = matches.Count
+            };
+
+            return Task.FromResult(result);
         }
-
-        if (!string.IsNullOrWhiteSpace(type))
-        {
-            query = query.Where(r => string.Equals(r.IncidentType, type.Trim(), StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (from.HasValue)
-        {
-            query = query.Where(r => r.ReportedAt >= from.Value);
-        }
-
-        if (to.HasValue)
-        {
-            // A date with no time (e.g. 2026-10-20) means "the whole day".
-            var end = to.Value.TimeOfDay == TimeSpan.Zero ? to.Value.AddDays(1) : to.Value.AddTicks(1);
-            query = query.Where(r => r.ReportedAt < end);
-        }
-
-        var matches = query.OrderByDescending(r => r.ReportedAt).ThenByDescending(r => r.Id).ToList();
-
-        var result = new PagedResult<IncidentDto>
-        {
-            Items = matches.Skip((page - 1) * pageSize).Take(pageSize).Select(ToDto).ToList(),
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = matches.Count
-        };
-
-        return Task.FromResult(result);
     }
 
     /// <inheritdoc />
     public Task<IncidentDto?> GetIncidentByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var record = _records.FirstOrDefault(r => r.Id == id && !r.IsDeleted);
-        return Task.FromResult(record is null ? null : ToDto(record));
+        lock (_lock)
+        {
+            var record = _records.FirstOrDefault(r => r.Id == id && !r.IsDeleted);
+            return Task.FromResult(record is null ? null : ToDto(record));
+        }
+    }
+
+    /// <inheritdoc />
+    public Task<IncidentDto> AddIncidentAsync(
+        string title,
+        string description,
+        string incidentType,
+        string status,
+        string location)
+    {
+        lock (_lock)
+        {
+            int nextId = _records.Count > 0 ? _records.Max(r => r.Id) + 1 : 1;
+
+            if (!Enum.TryParse<IncidentStatus>(status, true, out var parsedStatus))
+            {
+                parsedStatus = IncidentStatus.Open;
+            }
+
+            var newRecord = new IncidentRecord
+            {
+                Id = nextId,
+                Title = title.Trim(),
+                Description = description.Trim(),
+                IncidentType = incidentType.Trim(),
+                Status = parsedStatus,
+                Location = location.Trim(),
+                ReportedAt = DateTime.UtcNow,
+                InternalNotes = "Registered via US 217 API.",
+                IsDeleted = false
+            };
+
+            _records.Add(newRecord);
+            return Task.FromResult(ToDto(newRecord));
+        }
     }
 
     /// <summary>
