@@ -23,3 +23,5 @@ TestResults/
 # OS files
 .DS_Store
 Thumbs.db
+backend/CmSecurityService/html/
+backend/CmSecurityService/latex/
