@@ -1,9 +1,14 @@
+using CmSecurityService.Incidents;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+// Register Birendra's View Incidents Service (#216)
+builder.Services.AddIncidentViewing();
+
+// OpenAPI/Swagger configuration
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
