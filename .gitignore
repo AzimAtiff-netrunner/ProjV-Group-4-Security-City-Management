@@ -22,4 +22,7 @@ TestResults/
 
 # OS files
 .DS_Store
-Thumbs.db
+Thumbs.db 
+
+# doxygen
+docs/doxygen/html/
