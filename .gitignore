@@ -26,3 +26,5 @@ Thumbs.db
 
 # doxygen
 docs/doxygen/html/
+backend/CmSecurityService/html/
+backend/CmSecurityService/latex/
