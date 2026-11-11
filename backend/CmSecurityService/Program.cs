@@ -1,9 +1,20 @@
 using CmSecurityService.Incidents;
+using CmSecurityService.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException("database connection string is missing");
+}
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 4, 0))));
 
 // Register Birendra's View Incidents Service (#216)
 builder.Services.AddIncidentViewing();

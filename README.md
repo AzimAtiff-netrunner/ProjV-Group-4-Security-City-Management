@@ -32,5 +32,11 @@ How to run:
         frontend: npm test
         backend: dotnet test (from root)
 
+    database: 
+        - docker compose up -d mysql (initialize)
+        - docker compose exec mysql mysql -u security_app -p security_db (enter application password when asked)
+        - SHOW TABLES; (shows tables in database)
+        - run different types of queries if needed.
+
 Important: run the backend before the frontend
 

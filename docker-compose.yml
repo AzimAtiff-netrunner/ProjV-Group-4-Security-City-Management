@@ -10,3 +10,31 @@ services:
       ASPNETCORE_HTTP_PORTS: "8080"
       SecurityService__ServiceName: Security
       SecurityService__ExternalServiceTimeoutSeconds: "10"
+      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=security_db;User=security_app;Password=${MYSQL_PASSWORD};"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.4
+    container_name: security-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set password in .env}
+      MYSQL_DATABASE: security_db
+      MYSQL_USER: security_app
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set password in .env}
+    ports:
+      - "3307:3306"
+    volumes:
+      - security_mysql_data:/var/lib/mysql
+      - ./backend/CmSecurityService/Database/security_db.sql:/docker-entrypoint-initdb.d/01-security_db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  security_mysql_data:
