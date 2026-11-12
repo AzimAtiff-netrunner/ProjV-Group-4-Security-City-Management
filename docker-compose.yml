@@ -10,7 +10,7 @@ services:
       ASPNETCORE_HTTP_PORTS: "8080"
       SecurityService__ServiceName: Security
       SecurityService__ExternalServiceTimeoutSeconds: "10"
-      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=security_db;User=security_app;Password=${MYSQL_PASSWORD};"
+      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=security_db;User=security_app;Password=${MYSQL_PASSWORD};GuidFormat=None;"
     depends_on:
       mysql:
         condition: service_healthy

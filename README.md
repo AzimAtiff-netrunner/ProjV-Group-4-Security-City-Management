@@ -27,6 +27,8 @@ How to run:
     Backend: 
         - docker running in the background (docker desktop recommended)
         - docker compose up --build (from root)
+        To rebuild: 
+            - docker compose up --build -d security-api
 
     Tests: 
         frontend: npm test
@@ -39,4 +41,3 @@ How to run:
         - run different types of queries if needed.
 
 Important: run the backend before the frontend
-
