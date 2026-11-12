@@ -15,11 +15,16 @@ frontend/.env/
 # Local secrets and environment variables
 .env
 .env.*
-.env.local
+!.env.example
 
 # Test output
 TestResults/
 
 # OS files
 .DS_Store
-Thumbs.db
+Thumbs.db 
+
+# doxygen
+docs/doxygen/html/
+backend/CmSecurityService/html/
+backend/CmSecurityService/latex/

@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
 
 // Database (MySQL via Pomelo)
@@ -33,6 +32,14 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+app.MapGet("/health", () =>
+{
+    return Results.Ok(new
+    {
+        status = "Healthy"
+    });
+});
 
 app.MapControllers();
 

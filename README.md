@@ -15,6 +15,7 @@ Prerequisites:
     - Node.js and npm
     - .NET 8 SDK
     - Git
+    - docker
 
 How to run: 
 
@@ -24,8 +25,8 @@ How to run:
         npm run dev
     
     Backend: 
-        cd backend
-        dotnet run --project CmSecurityService
+        - docker running in the background (docker desktop recommended)
+        - docker compose up --build (from root)
 
     How to check incdents are in DB:
     |   - docker compose up --build
@@ -35,4 +36,6 @@ How to run:
     Tests: 
         frontend: npm test
         backend: dotnet test (from root)
+
+Important: run the backend before the frontend
 
