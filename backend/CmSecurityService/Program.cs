@@ -1,3 +1,4 @@
+﻿using CmSecurityService.Forwarding;
 using CmSecurityService.Incidents;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -5,8 +6,18 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
-// Register Birendra's View Incidents Service (#216)
+// Register View Incidents Service (#216)
 builder.Services.AddIncidentViewing();
+
+// Register 9-1-1 Call Forwarding Client & Service (#219)
+builder.Services.AddHttpClient<IEmergencyServiceClient, EmergencyServiceClient>(client =>
+{
+    var emergencyUrl = builder.Configuration["Services:EmergencyServiceUrl"] ?? "http://localhost:5050";
+    client.BaseAddress = new Uri(emergencyUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+builder.Services.AddSingleton<IForwardingService, InMemoryForwardingService>();
 
 // OpenAPI/Swagger configuration
 builder.Services.AddEndpointsApiExplorer();
