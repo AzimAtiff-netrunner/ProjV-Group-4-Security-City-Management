@@ -6,6 +6,10 @@ Accept: application/json
 ###
 
 ### View 9-1-1 calls (Sprint 2)
+GET {{CmSecurityService_HostAddress}}/api/security/v1/calls?status=InProgress
+Accept: application/json
+
+###
 GET {{CmSecurityService_HostAddress}}/api/security/v1/calls
 Accept: application/json
 
@@ -30,5 +34,21 @@ Accept: application/json
 # Expect 400
 GET {{CmSecurityService_HostAddress}}/api/security/v1/calls?type=Ambulance
 Accept: application/json
+
+###
+
+### Incidents (#216 view, #217 register)
+GET {{CmSecurityService_HostAddress}}/api/security/v1/incidents
+Accept: application/json
+
+###
+GET {{CmSecurityService_HostAddress}}/api/security/v1/incidents/3
+Accept: application/json
+
+###
+POST {{CmSecurityService_HostAddress}}/api/security/v1/incidents
+Content-Type: application/json
+
+{ "title": "Bike stolen", "description": "Taken from rack", "incidentType": "Theft", "location": "Downtown" }
 
 ###
