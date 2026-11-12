@@ -1,4 +1,4 @@
-using CmSecurityService.Controllers;
+﻿using CmSecurityService.Controllers;
 using CmSecurityService.Incidents;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.VisualStudio.TestPlatform.TestHost;
@@ -23,7 +23,7 @@ public class IncidentsApiIntegrationTests : IClassFixture<WebApplicationFactory<
     public async Task Get_Incidents_ReturnsOkWithPagedResult()
     {
         // Act
-        var response = await _client.GetAsync("/incidents");
+        var response = await _client.GetAsync("/api/security/v1/incidents");
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -36,7 +36,7 @@ public class IncidentsApiIntegrationTests : IClassFixture<WebApplicationFactory<
     public async Task Get_IncidentById_ReturnsOkForExistingIncident()
     {
         // Act
-        var response = await _client.GetAsync("/incidents/1");
+        var response = await _client.GetAsync("/api/security/v1/incidents/1");
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -49,7 +49,7 @@ public class IncidentsApiIntegrationTests : IClassFixture<WebApplicationFactory<
     public async Task Get_IncidentById_ReturnsNotFoundForInvalidId()
     {
         // Act
-        var response = await _client.GetAsync("/incidents/99999");
+        var response = await _client.GetAsync("/api/security/v1/incidents/99999");
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -68,7 +68,7 @@ public class IncidentsApiIntegrationTests : IClassFixture<WebApplicationFactory<
         );
 
         // Act
-        var response = await _client.PostAsJsonAsync("/incidents", invalidPayload);
+        var response = await _client.PostAsJsonAsync("/api/security/v1/incidents", invalidPayload);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -87,7 +87,7 @@ public class IncidentsApiIntegrationTests : IClassFixture<WebApplicationFactory<
         );
 
         // Act 1: Post
-        var postResponse = await _client.PostAsJsonAsync("/incidents", newIncident);
+        var postResponse = await _client.PostAsJsonAsync("/api/security/v1/incidents", newIncident);
 
         // Assert 1: Status 201 Created
         Assert.Equal(HttpStatusCode.Created, postResponse.StatusCode);
@@ -96,11 +96,11 @@ public class IncidentsApiIntegrationTests : IClassFixture<WebApplicationFactory<
         Assert.True(created.Id > 0);
 
         // Act 2: Query by ID (US 216)
-        var getByIdResponse = await _client.GetAsync($"/incidents/{created.Id}");
+        var getByIdResponse = await _client.GetAsync($"/api/security/v1/incidents/{created.Id}");
         Assert.Equal(HttpStatusCode.OK, getByIdResponse.StatusCode);
 
         // Act 3: Verify it appears in the catalog list
-        var getAllResponse = await _client.GetAsync("/incidents");
+        var getAllResponse = await _client.GetAsync("/api/security/v1/incidents");
         var catalog = await getAllResponse.Content.ReadFromJsonAsync<PagedResult<IncidentDto>>(_jsonOptions);
         Assert.NotNull(catalog);
         Assert.Contains(catalog.Items, item => item.Id == created.Id);
