@@ -1,4 +1,5 @@
 using CmSecurityService.Calls;
+using CmSecurityService.Common;
 using CmSecurityService.Incidents;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,7 +33,7 @@ public class CallsController : ControllerBase
     /// Lists 9-1-1 calls, newest first, with optional filters and paging.
     /// </summary>
     /// <param name="query">
-    /// Filters: status (Received, Forwarded, Failed, Closed), type (Police, Fire, EMS),
+    /// Filters: status (Received, InProgress, Forwarded, Failed, Closed), type (Police, Fire, EMS),
     /// from, to (dates), page (default 1) and pageSize (default 20, max 100).
     /// </param>
     /// <param name="cancellationToken">Cancelled if the caller disconnects.</param>
@@ -41,7 +42,7 @@ public class CallsController : ControllerBase
     /// <response code="400">One or more query values are invalid.</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<CallDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PagedResult<CallDto>>> GetCalls(
         [FromQuery] CallQuery query,
         CancellationToken cancellationToken)
@@ -49,12 +50,7 @@ public class CallsController : ControllerBase
         var errors = query.Validate(out var status, out var type);
         if (errors.Count > 0)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid call query.",
-                Detail = string.Join(" ", errors)
-            });
+            return BadRequest(ApiError.Create(HttpContext, "invalid_query", string.Join(" ", errors)));
         }
 
         var result = await _calls.GetCallsAsync(
@@ -73,18 +69,13 @@ public class CallsController : ControllerBase
     /// <response code="404">No call has this id.</response>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(CallDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CallDto>> GetCallById(Guid id, CancellationToken cancellationToken)
     {
         var call = await _calls.GetCallByIdAsync(id, cancellationToken);
         if (call is null)
         {
-            return NotFound(new ProblemDetails
-            {
-                Status = StatusCodes.Status404NotFound,
-                Title = "Call not found.",
-                Detail = $"No 9-1-1 call exists with id {id}."
-            });
+            return NotFound(ApiError.Create(HttpContext, "call_not_found", $"No 9-1-1 call exists with id {id}."));
         }
 
         return Ok(call);

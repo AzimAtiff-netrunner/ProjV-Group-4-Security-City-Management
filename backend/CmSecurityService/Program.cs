@@ -1,10 +1,14 @@
 using CmSecurityService.Calls;
+using CmSecurityService.Common;
 using CmSecurityService.Incidents;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+// Shared error format for all endpoints (Security Service API Details, section 1)
+builder.Services.AddSharedErrorFormat();
 
 // Register Birendra's View Incidents Service (#216)
 builder.Services.AddIncidentViewing();
