@@ -1,4 +1,6 @@
-﻿using CmSecurityService.Forwarding;
+﻿using CmSecurityService.Calls;
+using CmSecurityService.Common;
+using CmSecurityService.Forwarding;
 using CmSecurityService.Incidents;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,8 +8,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Shared error format for all endpoints
+builder.Services.AddSharedErrorFormat();
+
 // Register View Incidents Service (#216)
 builder.Services.AddIncidentViewing();
+
+// Register View 9-1-1 Calls Service (Sprint 2)
+builder.Services.AddCallViewing();
 
 // Register 9-1-1 Call Forwarding Client & Service (#219)
 builder.Services.AddHttpClient<IEmergencyServiceClient, EmergencyServiceClient>(client =>

@@ -1,3 +1,4 @@
+using CmSecurityService.Common;
 using CmSecurityService.Incidents;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,7 +12,7 @@ namespace CmSecurityService.Controllers;
 /// as well as new incident reporting and registration (#217).
 /// </remarks>
 [ApiController]
-[Route("incidents")]
+[Route("api/security/v1/incidents")]
 [Produces("application/json")]
 public class IncidentsController : ControllerBase
 {
@@ -50,7 +51,7 @@ public class IncidentsController : ControllerBase
     /// <response code="400">One or more query values are invalid.</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<IncidentDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PagedResult<IncidentDto>>> GetIncidents(
         [FromQuery] IncidentQuery query,
         CancellationToken cancellationToken)
@@ -58,12 +59,7 @@ public class IncidentsController : ControllerBase
         var errors = query.Validate(out var status);
         if (errors.Count > 0)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid incident query.",
-                Detail = string.Join(" ", errors)
-            });
+            return BadRequest(ApiError.Create(HttpContext, "invalid_query", string.Join(" ", errors)));
         }
 
         var result = await _incidents.GetIncidentsAsync(
@@ -83,18 +79,13 @@ public class IncidentsController : ControllerBase
     [HttpGet("{id:int}")]
     [ActionName(nameof(GetIncidentById))]
     [ProducesResponseType(typeof(IncidentDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IncidentDto>> GetIncidentById(int id, CancellationToken cancellationToken)
     {
         var incident = await _incidents.GetIncidentByIdAsync(id, cancellationToken);
         if (incident is null)
         {
-            return NotFound(new ProblemDetails
-            {
-                Status = StatusCodes.Status404NotFound,
-                Title = "Incident not found.",
-                Detail = $"No incident exists with id {id}."
-            });
+            return NotFound(ApiError.Create(HttpContext, "incident_not_found", $"No incident exists with id {id}."));
         }
 
         return Ok(incident);
@@ -109,17 +100,12 @@ public class IncidentsController : ControllerBase
     /// <response code="400">Invalid payload submitted.</response>
     [HttpPost]
     [ProducesResponseType(typeof(IncidentDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IncidentDto>> RegisterIncident([FromBody] CreateIncidentRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Description))
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Failed",
-                Detail = "Title and Description are required."
-            });
+            return BadRequest(ApiError.Create(HttpContext, "validation_failed", "Title and Description are required."));
         }
 
         var status = string.IsNullOrWhiteSpace(request.Status) ? "Open" : request.Status;
