@@ -27,7 +27,7 @@ public class CallDto
     /// <summary>What the caller reported.</summary>
     public string Description { get; set; } = string.Empty;
 
-    /// <summary>Received, Forwarded, Failed or Closed.</summary>
+    /// <summary>Received, InProgress, Forwarded, Failed or Closed.</summary>
     public string Status { get; set; } = string.Empty;
 
     /// <summary>When the call was received (UTC).</summary>

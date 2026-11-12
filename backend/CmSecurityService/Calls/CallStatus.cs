@@ -12,6 +12,9 @@ public enum CallStatus
     /// <summary>Call received by Security; not yet handled.</summary>
     Received,
 
+    /// <summary>Officers are responding to the call.</summary>
+    InProgress,
+
     /// <summary>Call forwarded to Emergency Services (Fire/EMS).</summary>
     Forwarded,
 

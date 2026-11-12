@@ -11,7 +11,7 @@ public class CallQuery
     /// <summary>Largest page size a caller may request.</summary>
     public const int MaxPageSize = 100;
 
-    /// <summary>Optional status filter: Received, Forwarded, Failed or Closed (case-insensitive).</summary>
+    /// <summary>Optional status filter: Received, InProgress, Forwarded, Failed or Closed (case-insensitive).</summary>
     public string? Status { get; set; }
 
     /// <summary>Optional call type filter: Police, Fire or EMS (case-insensitive).</summary>
