@@ -1,0 +1,22 @@
+﻿# Project Information
+PROJECT_NAME           = "CmSecurityService - Police Incidents API"
+PROJECT_NUMBER         = "v1.0.0"
+
+# Target code to scan
+INPUT                  = backend/CmSecurityService
+RECURSIVE              = YES
+FILE_PATTERNS          = *.cs
+
+# Exclude build output folders
+EXCLUDE_PATTERNS       = */bin/* */obj/*
+
+# C# & XML Documentation Parsing Settings
+OPTIMIZE_OUTPUT_JAVA   = YES
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+EXTRACT_PRIVATE        = NO
+
+# Output Configuration
+OUTPUT_DIRECTORY       = docs
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO

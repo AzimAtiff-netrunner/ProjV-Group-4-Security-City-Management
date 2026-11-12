@@ -25,3 +25,6 @@ TestResults/
 Thumbs.db
 backend/CmSecurityService/html/
 backend/CmSecurityService/latex/
+
+docs/
+*.csproj.user
