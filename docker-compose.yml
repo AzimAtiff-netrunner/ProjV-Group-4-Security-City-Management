@@ -1,12 +1,30 @@
 services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+    volumes:
+      - ./backend/CmSecurityService/Database/security_db.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prootpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   security-api:
     build:
       context: ./backend/CmSecurityService
       dockerfile: Dockerfile
     ports:
       - "5228:8080"
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: "8080"
       SecurityService__ServiceName: Security
       SecurityService__ExternalServiceTimeoutSeconds: "10"
+      ConnectionStrings__Default: "Server=db;Database=security_db;User=root;Password=rootpassword"
