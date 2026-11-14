@@ -1,5 +1,5 @@
-using CmSecurityService.Incidents;
 using CmSecurityService.Data;
+using CmSecurityService.Incidents;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);

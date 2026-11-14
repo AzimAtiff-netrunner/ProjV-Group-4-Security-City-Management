@@ -17,7 +17,7 @@ public class InMemoryIncidentQueryService : IIncidentQueryService
     public class IncidentRecord
     {
         /// <summary>Unique incident identifier.</summary>
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         /// <summary>Short headline.</summary>
         public string Title { get; set; } = string.Empty;
         /// <summary>Full description.</summary>
@@ -55,7 +55,7 @@ public class InMemoryIncidentQueryService : IIncidentQueryService
 
     /// <inheritdoc />
     public Task<PagedResult<IncidentDto>> GetIncidentsAsync(
-        IncidentStatus? status,
+        string? status,
         string? type,
         DateTime? from,
         DateTime? to,
@@ -67,9 +67,12 @@ public class InMemoryIncidentQueryService : IIncidentQueryService
         {
             IEnumerable<IncidentRecord> query = _records.Where(r => !r.IsDeleted);
 
-            if (status.HasValue)
+            if (!string.IsNullOrWhiteSpace(status))
             {
-                query = query.Where(r => r.Status == status.Value);
+                if (Enum.TryParse<IncidentStatus>(status.Trim(), true, out var parsedStatus))
+                {
+                    query = query.Where(r => r.Status == parsedStatus);
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(type))
@@ -103,7 +106,7 @@ public class InMemoryIncidentQueryService : IIncidentQueryService
     }
 
     /// <inheritdoc />
-    public Task<IncidentDto?> GetIncidentByIdAsync(int id, CancellationToken cancellationToken = default)
+    public Task<IncidentDto?> GetIncidentByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         lock (_lock)
         {
@@ -117,14 +120,15 @@ public class InMemoryIncidentQueryService : IIncidentQueryService
         string title,
         string description,
         string incidentType,
-        string status,
-        string location)
+        string? status,
+        string location,
+        CancellationToken cancellationToken = default)
     {
         lock (_lock)
         {
-            int nextId = _records.Count > 0 ? _records.Max(r => r.Id) + 1 : 1;
+            Guid nextId = Guid.NewGuid();
 
-            if (!Enum.TryParse<IncidentStatus>(status, true, out var parsedStatus))
+            if (!Enum.TryParse<IncidentStatus>(status ?? "Open", true, out var parsedStatus))
             {
                 parsedStatus = IncidentStatus.Open;
             }
@@ -169,14 +173,14 @@ public class InMemoryIncidentQueryService : IIncidentQueryService
     /// <returns>Fictional seed records.</returns>
     public static List<IncidentRecord> SeedData() => new()
     {
-        new() { Id = 1, Title = "Bike stolen from rack", Description = "Locked bicycle taken from the rack outside the public library.", IncidentType = "Theft", Status = IncidentStatus.Open, Location = "Downtown", ReportedAt = new DateTime(2026, 10, 14, 9, 30, 0, DateTimeKind.Utc), InternalNotes = "Check library CCTV." },
-        new() { Id = 2, Title = "Graffiti on bus shelter", Description = "Spray paint on the bus shelter at King and Main.", IncidentType = "Vandalism", Status = IncidentStatus.Closed, Location = "Uptown", ReportedAt = new DateTime(2026, 10, 15, 14, 5, 0, DateTimeKind.Utc), InternalNotes = "Cleaned by maintenance." },
-        new() { Id = 3, Title = "Break-in at convenience store", Description = "Rear door forced open overnight; cash register emptied.", IncidentType = "Burglary", Status = IncidentStatus.UnderInvestigation, Location = "Eastside", ReportedAt = new DateTime(2026, 10, 16, 6, 45, 0, DateTimeKind.Utc), InternalNotes = "Possible link to incident 7." },
-        new() { Id = 4, Title = "Two-car collision", Description = "Minor collision at the Elm Street intersection, no injuries.", IncidentType = "Traffic", Status = IncidentStatus.Closed, Location = "Westside", ReportedAt = new DateTime(2026, 10, 17, 17, 20, 0, DateTimeKind.Utc), InternalNotes = "Both drivers exchanged insurance." },
-        new() { Id = 5, Title = "Noise complaint", Description = "Loud music reported from a residence after midnight.", IncidentType = "Disturbance", Status = IncidentStatus.Closed, Location = "Northgate", ReportedAt = new DateTime(2026, 10, 18, 4, 10, 0, DateTimeKind.Utc), InternalNotes = "Warning issued." },
-        new() { Id = 6, Title = "Wallet taken on transit", Description = "Passenger reports wallet stolen on route 7 bus.", IncidentType = "Theft", Status = IncidentStatus.UnderInvestigation, Location = "Downtown", ReportedAt = new DateTime(2026, 10, 19, 12, 0, 0, DateTimeKind.Utc), InternalNotes = "Requested footage from Public Transport." },
-        new() { Id = 7, Title = "Attempted break-in", Description = "Pry marks found on the side door of a pharmacy.", IncidentType = "Burglary", Status = IncidentStatus.Open, Location = "Eastside", ReportedAt = new DateTime(2026, 10, 20, 7, 55, 0, DateTimeKind.Utc), InternalNotes = "Same tool marks as incident 3." },
-        new() { Id = 8, Title = "Abandoned vehicle", Description = "Car parked on the street for over a week without plates.", IncidentType = "Traffic", Status = IncidentStatus.Open, Location = "Westside", ReportedAt = new DateTime(2026, 10, 21, 10, 15, 0, DateTimeKind.Utc), InternalNotes = "Tow requested." },
-        new() { Id = 9, Title = "Duplicate report", Description = "Entered twice by mistake.", IncidentType = "Theft", Status = IncidentStatus.Open, Location = "Downtown", ReportedAt = new DateTime(2026, 10, 14, 9, 31, 0, DateTimeKind.Utc), InternalNotes = "Duplicate of 1.", IsDeleted = true }
+        new() { Id = Guid.Parse("00000001-0000-0000-0000-000000000001"), Title = "Bike stolen from rack", Description = "Locked bicycle taken from the rack outside the public library.", IncidentType = "Theft", Status = IncidentStatus.Open, Location = "Downtown", ReportedAt = new DateTime(2026, 10, 14, 9, 30, 0, DateTimeKind.Utc), InternalNotes = "Check library CCTV." },
+        new() { Id = Guid.Parse("00000001-0000-0000-0000-000000000002"), Title = "Graffiti on bus shelter", Description = "Spray paint on the bus shelter at King and Main.", IncidentType = "Vandalism", Status = IncidentStatus.Closed, Location = "Uptown", ReportedAt = new DateTime(2026, 10, 15, 14, 5, 0, DateTimeKind.Utc), InternalNotes = "Cleaned by maintenance." },
+        new() { Id = Guid.Parse("00000001-0000-0000-0000-000000000003"), Title = "Break-in at convenience store", Description = "Rear door forced open overnight; cash register emptied.", IncidentType = "Burglary", Status = IncidentStatus.UnderInvestigation, Location = "Eastside", ReportedAt = new DateTime(2026, 10, 16, 6, 45, 0, DateTimeKind.Utc), InternalNotes = "Possible link to incident 7." },
+        new() { Id = Guid.Parse("00000001-0000-0000-0000-000000000004"), Title = "Two-car collision", Description = "Minor collision at the Elm Street intersection, no injuries.", IncidentType = "Traffic", Status = IncidentStatus.Closed, Location = "Westside", ReportedAt = new DateTime(2026, 10, 17, 17, 20, 0, DateTimeKind.Utc), InternalNotes = "Both drivers exchanged insurance." },
+        new() { Id = Guid.Parse("00000001-0000-0000-0000-000000000005"), Title = "Noise complaint", Description = "Loud music reported from a residence after midnight.", IncidentType = "Disturbance", Status = IncidentStatus.Closed, Location = "Northgate", ReportedAt = new DateTime(2026, 10, 18, 4, 10, 0, DateTimeKind.Utc), InternalNotes = "Warning issued." },
+        new() { Id = Guid.Parse("00000001-0000-0000-0000-000000000006"), Title = "Wallet taken on transit", Description = "Passenger reports wallet stolen on route 7 bus.", IncidentType = "Theft", Status = IncidentStatus.UnderInvestigation, Location = "Downtown", ReportedAt = new DateTime(2026, 10, 19, 12, 0, 0, DateTimeKind.Utc), InternalNotes = "Requested footage from Public Transport." },
+        new() { Id = Guid.Parse("00000001-0000-0000-0000-000000000007"), Title = "Attempted break-in", Description = "Pry marks found on the side door of a pharmacy.", IncidentType = "Burglary", Status = IncidentStatus.Open, Location = "Eastside", ReportedAt = new DateTime(2026, 10, 20, 7, 55, 0, DateTimeKind.Utc), InternalNotes = "Same tool marks as incident 3." },
+        new() { Id = Guid.Parse("00000001-0000-0000-0000-000000000008"), Title = "Abandoned vehicle", Description = "Car parked on the street for over a week without plates.", IncidentType = "Traffic", Status = IncidentStatus.Open, Location = "Westside", ReportedAt = new DateTime(2026, 10, 21, 10, 15, 0, DateTimeKind.Utc), InternalNotes = "Tow requested." },
+        new() { Id = Guid.Parse("00000001-0000-0000-0000-000000000009"), Title = "Duplicate report", Description = "Entered twice by mistake.", IncidentType = "Theft", Status = IncidentStatus.Open, Location = "Downtown", ReportedAt = new DateTime(2026, 10, 14, 9, 31, 0, DateTimeKind.Utc), InternalNotes = "Duplicate of 1.", IsDeleted = true }
     };
 }

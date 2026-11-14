@@ -26,10 +26,16 @@ How to run:
     
     Backend: 
         - docker running in the background (docker desktop recommended)
+        - docker compose up -d (from root)
         - docker compose up --build (from root)
         To rebuild: 
             - docker compose up --build -d security-api
 
+    How to check incdents are in DB:
+    |   - docker compose up --build
+    |   - Add a Incident in GET/Incident
+    |   - docker compose exec db mysql -uroot -prootpassword security_db -e "SELECT incident_id, incident_title, incident_location, created_at FROM incident;"
+    
     Tests: 
         frontend: npm test
         backend: dotnet test (from root)

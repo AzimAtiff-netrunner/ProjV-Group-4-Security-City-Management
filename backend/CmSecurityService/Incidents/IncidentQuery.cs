@@ -11,7 +11,7 @@ public class IncidentQuery
     /// <summary>Largest page size a caller may request.</summary>
     public const int MaxPageSize = 100;
 
-    /// <summary>Optional status filter: Open, UnderInvestigation or Closed (case-insensitive).</summary>
+    /// <summary>Optional status filter by name, e.g. "Open" (case-insensitive). Checked against the incident_status table.</summary>
     public string? Status { get; set; }
 
     /// <summary>Optional incident type filter, e.g. "Theft" (case-insensitive exact match).</summary>
@@ -32,12 +32,10 @@ public class IncidentQuery
     /// <summary>
     /// Checks the query for invalid values.
     /// </summary>
-    /// <param name="status">Parsed status when <see cref="Status"/> is valid; otherwise null.</param>
     /// <returns>A list of human-readable error messages. Empty when the query is valid.</returns>
-    public List<string> Validate(out IncidentStatus? status)
+    public List<string> Validate()
     {
         var errors = new List<string>();
-        status = null;
 
         if (Page < 1)
         {
@@ -47,21 +45,6 @@ public class IncidentQuery
         if (PageSize < 1 || PageSize > MaxPageSize)
         {
             errors.Add($"pageSize must be between 1 and {MaxPageSize}.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(Status))
-        {
-            // Enum.TryParse also accepts numbers like "1"; reject those so only names are valid.
-            if (Enum.TryParse<IncidentStatus>(Status, ignoreCase: true, out var parsed)
-                && Enum.IsDefined(parsed)
-                && !int.TryParse(Status, out _))
-            {
-                status = parsed;
-            }
-            else
-            {
-                errors.Add($"status '{Status}' is not valid. Use one of: {string.Join(", ", Enum.GetNames<IncidentStatus>())}.");
-            }
         }
 
         if (From.HasValue && To.HasValue && From.Value > To.Value)
