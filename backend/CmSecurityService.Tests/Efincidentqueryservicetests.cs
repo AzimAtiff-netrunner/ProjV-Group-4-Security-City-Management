@@ -34,9 +34,9 @@ public class EfIncidentQueryServiceTests
             new IncidentType { IncidentTypeId = Theft, Name = "Theft" },
             new IncidentType { IncidentTypeId = Vandalism, Name = "Vandalism" });
         db.IncidentStatuses.AddRange(
-            new IncidentStatus { IncidentStatusId = Open, Name = "Open" },
-            new IncidentStatus { IncidentStatusId = UnderInvestigation, Name = "Under Investigation" },
-            new IncidentStatus { IncidentStatusId = Closed, Name = "Closed" });
+            new CmSecurityService.Models.IncidentStatus { IncidentStatusId = Open, Name = "Open" },
+            new CmSecurityService.Models.IncidentStatus { IncidentStatusId = UnderInvestigation, Name = "Under Investigation" },
+            new CmSecurityService.Models.IncidentStatus { IncidentStatusId = Closed, Name = "Closed" });
         db.SaveChanges();
         return db;
     }

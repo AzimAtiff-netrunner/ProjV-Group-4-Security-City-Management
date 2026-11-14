@@ -26,6 +26,7 @@ How to run:
     
     Backend: 
         - docker running in the background (docker desktop recommended)
+        - docker compose up -d (from root)
         - docker compose up --build (from root)
 
     How to check incdents are in DB:
