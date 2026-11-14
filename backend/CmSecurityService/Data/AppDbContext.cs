@@ -40,9 +40,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.IncidentId).HasColumnName("incident_id").ValueGeneratedOnAdd();
             e.Property(x => x.IncidentTypeId).HasColumnName("incident_type_id");
             e.Property(x => x.IncidentStatusId).HasColumnName("incident_status_id");
-           e.Property(x => x.Title).HasColumnName("incident_title").HasMaxLength(200).IsRequired();
+           //e.Property(x => x.Title).HasColumnName("incident_title").HasMaxLength(200).IsRequired();
             e.Property(x => x.Description).HasColumnName("description").IsRequired();
-            e.Property(x => x.Location).HasColumnName("incident_location").HasMaxLength(200).IsRequired();
+            //e.Property(x => x.Location).HasColumnName("incident_location").HasMaxLength(200).IsRequired();
             e.Property(x => x.CreatedAt).HasColumnName("created_at").HasPrecision(6)
                 .ValueGeneratedOnAdd();
             e.HasOne(x => x.IncidentType).WithMany()
