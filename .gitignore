@@ -28,3 +28,6 @@ Thumbs.db
 docs/doxygen/html/
 backend/CmSecurityService/html/
 backend/CmSecurityService/latex/
+
+docs/
+*.csproj.user
