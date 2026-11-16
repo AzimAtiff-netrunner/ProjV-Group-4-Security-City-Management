@@ -14,6 +14,8 @@ public class IncidentsApiIntegrationTests : IClassFixture<WebApplicationFactory<
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
 
+    private readonly Guid _existingIncidentId = Guid.Parse("00000001-0000-0000-0000-000000000001");
+
     public IncidentsApiIntegrationTests(WebApplicationFactory<Program> factory)
     {
         _client = factory.CreateClient();
@@ -36,20 +38,20 @@ public class IncidentsApiIntegrationTests : IClassFixture<WebApplicationFactory<
     public async Task Get_IncidentById_ReturnsOkForExistingIncident()
     {
         // Act
-        var response = await _client.GetAsync("/incidents/1");
+        var response = await _client.GetAsync($"/incidents/{_existingIncidentId}");
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var incident = await response.Content.ReadFromJsonAsync<IncidentDto>(_jsonOptions);
         Assert.NotNull(incident);
-        Assert.Equal(1, incident.Id);
+        Assert.Equal(_existingIncidentId, incident.Id);
     }
 
     [Fact]
     public async Task Get_IncidentById_ReturnsNotFoundForInvalidId()
     {
         // Act
-        var response = await _client.GetAsync("/incidents/99999");
+        var response = await _client.GetAsync($"/incidents/{Guid.NewGuid()}");
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -93,7 +95,7 @@ public class IncidentsApiIntegrationTests : IClassFixture<WebApplicationFactory<
         Assert.Equal(HttpStatusCode.Created, postResponse.StatusCode);
         var created = await postResponse.Content.ReadFromJsonAsync<IncidentDto>(_jsonOptions);
         Assert.NotNull(created);
-        Assert.True(created.Id > 0);
+        Assert.NotEqual(Guid.Empty, created.Id);
 
         // Act 2: Query by ID (US 216)
         var getByIdResponse = await _client.GetAsync($"/incidents/{created.Id}");

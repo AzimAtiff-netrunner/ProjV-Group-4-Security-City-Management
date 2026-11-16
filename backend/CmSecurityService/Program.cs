@@ -1,5 +1,5 @@
 using CmSecurityService.Data;
-﻿using CmSecurityService.Forwarding;
+using CmSecurityService.Forwarding;
 using CmSecurityService.Incidents;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,7 +17,6 @@ if (string.IsNullOrWhiteSpace(connectionString))
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 4, 0))));
 
-// Register Birendra's View Incidents Service (#216)
 // Register View Incidents Service (#216)
 builder.Services.AddIncidentViewing();
 
