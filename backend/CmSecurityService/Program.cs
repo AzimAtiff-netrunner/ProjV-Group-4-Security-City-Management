@@ -7,11 +7,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
-// Database (MySQL via Pomelo)
-var cs = builder.Configuration.GetConnectionString("Default")
-    ?? throw new InvalidOperationException("Connection string 'Default' is not configured.");
-builder.Services.AddDbContext<AppDbContext>(o =>
-    o.UseMySql(cs, ServerVersion.AutoDetect(cs)));
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException("database connection string is missing");
+}
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 4, 0))));
 
 // Register Birendra's View Incidents Service (#216)
 builder.Services.AddIncidentViewing();
