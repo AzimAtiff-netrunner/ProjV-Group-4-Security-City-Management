@@ -21,6 +21,8 @@ CREATE TABLE incident_status (
 CREATE TABLE incident (
   incident_id        CHAR(36)     NOT NULL DEFAULT (UUID()),
   incident_type_id   INT UNSIGNED NOT NULL,
+  incident_title     VARCHAR(200) NOT NULL,
+  incident_location  VARCHAR(200) NOT NULL, 
   description        TEXT         NOT NULL,
   incident_status_id INT UNSIGNED NOT NULL,
   created_at         DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -31,24 +33,26 @@ CREATE TABLE incident (
   CONSTRAINT fk_incident_type
     FOREIGN KEY (incident_type_id) REFERENCES incident_type (incident_type_id),
   CONSTRAINT fk_incident_status
-    FOREIGN KEY (incident_status_id) REFERENCES incident_status (incident_status_id)
+    FOREIGN KEY (incident_status_id) REFERENCES incident_status (incident_status_id),
+  CONSTRAINT ck_incident_title    CHECK (CHAR_LENGTH(TRIM(incident_title)) > 0),
+  CONSTRAINT ck_incident_location CHECK (CHAR_LENGTH(TRIM(incident_location)) > 0)
 );
  
 INSERT INTO incident_status (name, description) VALUES
-  ('Reported',    'Incident has been registered'),
-  ('In Progress', 'Officers are responding or investigating'),
-  ('Resolved',    'Incident has been dealt with'),
-  ('Closed',      'Incident file is closed');
+  ('Open',                'Incident has been reported'),
+  ('Under Investigation', 'Officers are investigating'),
+  ('Closed',              'Incident file is closed');
 
 INSERT INTO incident_type (name, description) VALUES
   ('Theft',            'Stolen property'),
+  ('Vandalism',          'Vandalized Property'),
+  ('Burglary',           'Break Ins'),
   ('Assault',          'Physical attack or threat'),
   ('Traffic Accident', 'Collision or road incident'),
   ('Disturbance',      'Noise, public disorder or disputes'),
   ('Other',            'Anything not covered by another type');
   
-INSERT INTO incident (incident_type_id, description, incident_status_id) VALUES 
-(1, 'Description of what happened', 1);
+
 
 
 -- 2. ROLES AND LOGIN
