@@ -97,7 +97,7 @@ public class IncidentsController : ControllerBase
     [ActionName(nameof(GetIncidentById))]
     [ProducesResponseType(typeof(IncidentDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<IncidentDto>> GetIncidentById(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<IncidentDto>> GetIncidentById(Guid id, CancellationToken cancellationToken)
     {
         var incident = await _incidents.GetIncidentByIdAsync(id, cancellationToken);
         if (incident is null)
@@ -119,7 +119,7 @@ public class IncidentsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(IncidentDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IncidentDto>> RegisterIncident([FromBody] CreateIncidentRequest request)
+    public async Task<ActionResult<IncidentDto>> RegisterIncident([FromBody] CreateIncidentRequest request, CancellationToken cancellationToken)
     {
         // Field rules (required, lengths) are checked automatically by [ApiController]
         // before this method runs; invalid bodies never reach this point.
@@ -137,7 +137,7 @@ public class IncidentsController : ControllerBase
         }
         catch (ValidationException ex)
         {
-            return BadRequest(ApiError.Create(HttpContext, "validation_failed", "Title and Description are required."));
+            return BadRequest(ApiError.Create(HttpContext, "validation_failed", ex.Message));
         }
     }
 }
