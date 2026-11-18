@@ -1,5 +1,7 @@
 using CmSecurityService.Data;
 using CmSecurityService.Forwarding;
+using CmSecurityService.Calls;
+using CmSecurityService.Common;
 using CmSecurityService.Incidents;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,6 +31,11 @@ builder.Services.AddHttpClient<IEmergencyServiceClient, EmergencyServiceClient>(
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 builder.Services.AddSingleton<IForwardingService, InMemoryForwardingService>();
+// Shared error format for all endpoints (Security Service API Details, section 1)
+builder.Services.AddSharedErrorFormat();
+
+// Register Birendra's View 9-1-1 Calls Service (Sprint 2)
+builder.Services.AddCallViewing();
 
 // OpenAPI/Swagger configuration
 builder.Services.AddEndpointsApiExplorer();

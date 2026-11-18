@@ -4,3 +4,51 @@ GET {{CmSecurityService_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+### View 9-1-1 calls (Sprint 2)
+GET {{CmSecurityService_HostAddress}}/api/security/v1/calls?status=InProgress
+Accept: application/json
+
+###
+GET {{CmSecurityService_HostAddress}}/api/security/v1/calls
+Accept: application/json
+
+###
+GET {{CmSecurityService_HostAddress}}/api/security/v1/calls?status=Forwarded&type=Fire
+Accept: application/json
+
+###
+GET {{CmSecurityService_HostAddress}}/api/security/v1/calls?from=2026-11-08&to=2026-11-10&pageSize=5
+Accept: application/json
+
+###
+GET {{CmSecurityService_HostAddress}}/api/security/v1/calls/11111111-1111-1111-1111-000000000002
+Accept: application/json
+
+###
+# Expect 404
+GET {{CmSecurityService_HostAddress}}/api/security/v1/calls/00000000-0000-0000-0000-000000000000
+Accept: application/json
+
+###
+# Expect 400
+GET {{CmSecurityService_HostAddress}}/api/security/v1/calls?type=Ambulance
+Accept: application/json
+
+###
+
+### Incidents (#216 view, #217 register)
+GET {{CmSecurityService_HostAddress}}/api/security/v1/incidents
+Accept: application/json
+
+###
+GET {{CmSecurityService_HostAddress}}/api/security/v1/incidents/3
+Accept: application/json
+
+###
+POST {{CmSecurityService_HostAddress}}/api/security/v1/incidents
+Content-Type: application/json
+
+{ "title": "Bike stolen", "description": "Taken from rack", "incidentType": "Theft", "location": "Downtown" }
+
+###
