@@ -1,10 +1,23 @@
-﻿using CmSecurityService.Forwarding;
+using CmSecurityService.Data;
+using CmSecurityService.Forwarding;
+using CmSecurityService.Calls;
+using CmSecurityService.Common;
 using CmSecurityService.Incidents;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException("database connection string is missing");
+}
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 4, 0))));
 
 // Register View Incidents Service (#216)
 builder.Services.AddIncidentViewing();
@@ -18,6 +31,11 @@ builder.Services.AddHttpClient<IEmergencyServiceClient, EmergencyServiceClient>(
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 builder.Services.AddSingleton<IForwardingService, InMemoryForwardingService>();
+// Shared error format for all endpoints (Security Service API Details, section 1)
+builder.Services.AddSharedErrorFormat();
+
+// Register Birendra's View 9-1-1 Calls Service (Sprint 2)
+builder.Services.AddCallViewing();
 
 // OpenAPI/Swagger configuration
 builder.Services.AddEndpointsApiExplorer();

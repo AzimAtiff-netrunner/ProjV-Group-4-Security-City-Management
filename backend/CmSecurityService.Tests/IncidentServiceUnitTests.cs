@@ -36,7 +36,7 @@ public class IncidentServiceUnitTests
     {
         // Act
         var result = await _service.GetIncidentsAsync(
-            status: IncidentStatus.Open,
+            status: "Open",
             type: null,
             from: null,
             to: null,
@@ -50,7 +50,7 @@ public class IncidentServiceUnitTests
     }
 
     [Fact]
-    public async Task AddIncidentAsync_IncrementsIdAndPersistsRecord()
+    public async Task AddIncidentAsync_GeneratesIdAndPersistsRecord()
     {
         // Arrange
         string title = "Unit Test Incident";
@@ -65,7 +65,7 @@ public class IncidentServiceUnitTests
 
         // Assert
         Assert.NotNull(created);
-        Assert.True(created.Id > 8);
+        Assert.NotEqual(Guid.Empty, created.Id);
         Assert.Equal(title, created.Title);
         Assert.NotNull(retrieved);
         Assert.Equal(created.Id, retrieved.Id);
@@ -75,7 +75,7 @@ public class IncidentServiceUnitTests
     public async Task GetIncidentByIdAsync_ReturnsNullForNonExistentId()
     {
         // Act
-        var result = await _service.GetIncidentByIdAsync(99999);
+        var result = await _service.GetIncidentByIdAsync(Guid.NewGuid());
 
         // Assert
         Assert.Null(result);
