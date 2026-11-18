@@ -34,9 +34,6 @@ builder.Services.AddSingleton<IForwardingService, InMemoryForwardingService>();
 // Shared error format for all endpoints (Security Service API Details, section 1)
 builder.Services.AddSharedErrorFormat();
 
-// Register Birendra's View Incidents Service (#216)
-builder.Services.AddIncidentViewing();
-
 // Register Birendra's View 9-1-1 Calls Service (Sprint 2)
 builder.Services.AddCallViewing();
 

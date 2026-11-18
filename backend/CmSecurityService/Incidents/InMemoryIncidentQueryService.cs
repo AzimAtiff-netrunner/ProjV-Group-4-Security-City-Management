@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace CmSecurityService.Incidents;
 
 /// <summary>
@@ -69,10 +71,17 @@ public class InMemoryIncidentQueryService : IIncidentQueryService
 
             if (!string.IsNullOrWhiteSpace(status))
             {
-                if (Enum.TryParse<IncidentStatus>(status.Trim(), true, out var parsedStatus))
+                var name = status.Trim();
+                var match = Enum.GetNames<IncidentStatus>()
+                    .FirstOrDefault(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase));
+                if (match is null)
                 {
-                    query = query.Where(r => r.Status == parsedStatus);
+                    throw new ValidationException(
+                        $"status '{name}' is not valid. Use one of: {string.Join(", ", Enum.GetNames<IncidentStatus>())}.");
                 }
+
+                var parsedStatus = Enum.Parse<IncidentStatus>(match);
+                query = query.Where(r => r.Status == parsedStatus);
             }
 
             if (!string.IsNullOrWhiteSpace(type))

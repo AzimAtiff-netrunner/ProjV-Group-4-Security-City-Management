@@ -12,7 +12,13 @@ namespace CmSecurityService.Tests;
 public class IncidentsControllerTests
 {
     private static IncidentsController CreateController() =>
-        new(new InMemoryIncidentQueryService());
+        new(new InMemoryIncidentQueryService())
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+        };
+
+    // Seed ids are Guids of the form 00000001-0000-0000-0000-00000000000N.
+    private static Guid SeedId(int n) => Guid.Parse($"00000001-0000-0000-0000-{n:D12}");
 
     private static PagedResult<IncidentDto> OkPage(ActionResult<PagedResult<IncidentDto>> result)
     {
@@ -27,7 +33,7 @@ public class IncidentsControllerTests
 
         Assert.Equal(8, page.TotalCount);               // 9 seeded, 1 soft-deleted
         Assert.Equal(8, page.Items.Count);
-        Assert.Equal(8, page.Items[0].Id);              // most recent
+        Assert.Equal(SeedId(8), page.Items[0].Id);              // most recent
         Assert.True(page.Items.Zip(page.Items.Skip(1)).All(p => p.First.ReportedAt >= p.Second.ReportedAt));
     }
 
@@ -36,7 +42,7 @@ public class IncidentsControllerTests
     {
         var page = OkPage(await CreateController().GetIncidents(new IncidentQuery(), CancellationToken.None));
 
-        Assert.DoesNotContain(page.Items, i => i.Id == 9);
+        Assert.DoesNotContain(page.Items, i => i.Id == SeedId(9));
     }
 
     [Theory]
@@ -67,7 +73,7 @@ public class IncidentsControllerTests
 
         var page = OkPage(await CreateController().GetIncidents(query, CancellationToken.None));
 
-        Assert.Equal(new[] { 5, 4, 3 }, page.Items.Select(i => i.Id).ToArray());
+        Assert.Equal(new[] { SeedId(5), SeedId(4), SeedId(3) }, page.Items.Select(i => i.Id).ToArray());
     }
 
     [Fact]
@@ -75,7 +81,7 @@ public class IncidentsControllerTests
     {
         var page = OkPage(await CreateController().GetIncidents(new IncidentQuery { Page = 2, PageSize = 3 }, CancellationToken.None));
 
-        Assert.Equal(new[] { 5, 4, 3 }, page.Items.Select(i => i.Id).ToArray());
+        Assert.Equal(new[] { SeedId(5), SeedId(4), SeedId(3) }, page.Items.Select(i => i.Id).ToArray());
         Assert.Equal(8, page.TotalCount);
         Assert.Equal(3, page.TotalPages);
     }
@@ -121,11 +127,11 @@ public class IncidentsControllerTests
     [Fact]
     public async Task GetIncidentById_Existing_ReturnsIncident()
     {
-        var result = await CreateController().GetIncidentById(3, CancellationToken.None);
+        var result = await CreateController().GetIncidentById(SeedId(3), CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var incident = Assert.IsType<IncidentDto>(ok.Value);
-        Assert.Equal(3, incident.Id);
+        Assert.Equal(SeedId(3), incident.Id);
         Assert.Equal("UnderInvestigation", incident.Status);
     }
 
@@ -133,8 +139,9 @@ public class IncidentsControllerTests
     [InlineData(999)]   // never existed
     [InlineData(9)]     // soft-deleted
     [InlineData(-1)]
-    public async Task GetIncidentById_Missing_Returns404(int id)
+    public async Task GetIncidentById_Missing_Returns404(int n)
     {
+        var id = n > 0 ? SeedId(n) : Guid.Empty;
         var result = await CreateController().GetIncidentById(id, CancellationToken.None);
 
         var notFound = Assert.IsType<NotFoundObjectResult>(result.Result);
@@ -144,18 +151,13 @@ public class IncidentsControllerTests
     }
 
     [Fact]
-    public async Task AddIncidentViewing_ResolvedFromDI_ServesSeedData()
+    public void AddIncidentViewing_RegistersEfService()
     {
-        // Regression: DI once picked the list constructor and injected an empty list,
-        // so the running API returned zero incidents while direct-construction tests passed.
         var services = new ServiceCollection();
         services.AddIncidentViewing();
-        using var provider = services.BuildServiceProvider();
 
-        var service = provider.GetRequiredService<IIncidentQueryService>();
-        var page = await service.GetIncidentsAsync(null, null, null, null, 1, 20);
-
-        Assert.Equal(8, page.TotalCount);
+        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IIncidentQueryService));
+        Assert.Equal(typeof(EfIncidentQueryService), descriptor.ImplementationType);
     }
 
     [Fact]

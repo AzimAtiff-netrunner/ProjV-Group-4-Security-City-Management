@@ -76,12 +76,7 @@ public class IncidentsController : ControllerBase
         }
         catch (ValidationException ex)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid incident query.",
-                Detail = ex.Message
-            });
+            return BadRequest(ApiError.Create(HttpContext, "invalid_query", ex.Message));
         }
     }
 
