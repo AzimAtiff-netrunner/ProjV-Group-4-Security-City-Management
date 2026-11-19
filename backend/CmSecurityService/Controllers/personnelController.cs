@@ -3,6 +3,7 @@ using CmSecurityService.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CmSecurityService.Models;
+using Microsoft.AspNetCore.Authorization;
 
 [ApiController]
 [Route("api/security/v1/personnel")]
@@ -38,8 +39,8 @@ public class PersonnelController : ControllerBase
 
         return Ok(officers);
     }
-
     [HttpPut("{officerId}/role")]
+    [Authorize(Policy = "SecurityAdministrator")]
     public async Task<IActionResult> AssignRole(string officerId,[FromBody] AssignRoleRequest request)
     {
     // Check whether the officer exists.
