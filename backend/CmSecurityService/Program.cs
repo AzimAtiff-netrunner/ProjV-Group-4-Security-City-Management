@@ -4,6 +4,14 @@ using CmSecurityService.Calls;
 using CmSecurityService.Common;
 using CmSecurityService.Incidents;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using CmSecurityService.Models;
+using Microsoft.Extensions.Options;
+using System.Security.Principal;
+using CmSecurityService.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +49,37 @@ builder.Services.AddCallViewing();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var jwtSecret = builder.Configuration["Jwt:Secret"] ?? throw new InvalidOperationException("Jwt:Secret is missing");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer is missing");
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? throw new InvalidOperationException("Jwt:Audience is missing");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(Options =>
+{
+    Options.MapInboundClaims = false; 
+    Options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidIssuer = jwtIssuer,
+        ValidateAudience = true,
+        ValidAudience = jwtAudience,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.FromSeconds(30)
+    };
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("SecurityAdministrator", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new AdministratorRequirement());
+    });
+});
+
+builder.Services.AddScoped<IAuthorizationHandler, SecurityAdministratorHandler>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -52,6 +91,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/health", () =>
