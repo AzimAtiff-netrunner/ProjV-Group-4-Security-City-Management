@@ -1,4 +1,4 @@
-using CmSecurityService.Autorization;
+using CmSecurityService.Authorization;
 using CmSecurityService.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -20,12 +20,12 @@ public class SecurityAdministratorHandler : AuthorizationHandler<AdministratorRe
     {
         // Registration puts the user's ID in the JWT subclaim.
         string? userId = context.User.FindFirst("sub")?.Value;
+        Console.WriteLine($"JWT sub claim: {userId}");
+
 
         if (string.IsNullOrWhiteSpace(userId))
             return;
 
-        // Check whether this user is an active officer
-        // with an active Security Administrator assignment.
         bool isSecurityAdministrator =
             await (
                 from officer in _context.Officers

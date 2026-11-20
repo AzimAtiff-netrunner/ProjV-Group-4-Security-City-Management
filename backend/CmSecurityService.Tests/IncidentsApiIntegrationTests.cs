@@ -1,10 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using CmSecurityService.Controllers;
 using CmSecurityService.Data;
 using CmSecurityService.Incidents;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -14,7 +16,11 @@ using Xunit;
 using IncidentRow = CmSecurityService.Models.Incident;
 using IncidentStatusRow = CmSecurityService.Models.IncidentStatus;   // entity; Incidents.IncidentStatus is an enum
 using IncidentTypeRow = CmSecurityService.Models.IncidentType;
-
+using CmSecurityService.Models;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
 namespace CmSecurityService.Tests;
 
 /// <summary>
@@ -27,7 +33,11 @@ public class IncidentsApiFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        // Program.cs throws when this is missing; the value is never used to connect.
+        builder.UseSetting("Jwt:Secret", "test-only-signing-key-at-least-32-characters-long");
+        builder.UseSetting("Jwt:Issuer", "CmRegistrationService");
+        builder.UseSetting("Jwt:Audience", "CmRegistrationClients");
+
+         // Program.cs throws when this is missing; the value is never used to connect.
         builder.UseSetting("ConnectionStrings:DefaultConnection", "Server=unused;Database=unused");
 
         builder.ConfigureServices(services =>
@@ -40,7 +50,7 @@ public class IncidentsApiFactory : WebApplicationFactory<Program>
         });
     }
 
-    private static void Seed(AppDbContext db)
+    private static async Task Seed(AppDbContext db)
     {
         // Ids of types and statuses are left for EF to generate.
         var types = new[] { "Theft", "Vandalism", "Burglary", "Traffic", "Disturbance", "Emergency" }
@@ -80,7 +90,124 @@ public class IncidentsApiFactory : WebApplicationFactory<Program>
         }
 
         db.SaveChanges();
+
+        // Seed roles for authorization tests.
+        db.Roles.AddRange(
+            new Role { RoleId = 1, Name = "Police Officer" },
+            new Role { RoleId = 2, Name = "Security Administrator" }
+        );
+
+        // Test user IDs must match the JWT "sub" claim.
+        const string adminUserId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+        const string officerUserId = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+        const string inactiveAdminUserId = "cccccccc-cccc-cccc-cccc-cccccccccccc";
+        const string noRoleUserId = "dddddddd-dddd-dddd-dddd-dddddddddddd";
+
+        const string adminOfficerId = "11111111-1111-1111-1111-111111111111";
+        const string officerOfficerId = "22222222-2222-2222-2222-222222222222";
+        const string inactiveAdminOfficerId = "33333333-3333-3333-3333-333333333333";
+        const string noRoleOfficerId = "44444444-4444-4444-4444-444444444444";
+
+        db.Officers.AddRange(
+            new Officer
+            {
+                OfficerId = adminOfficerId,
+                UserId = adminUserId,
+                BadgeNumber = "AUTH001",
+                FirstName = "Test",
+                LastName = "Adminstrator",
+                IsActive = true
+            },
+            new Officer
+            {
+                OfficerId = officerOfficerId,
+                UserId = officerUserId,
+                BadgeNumber = "AUTH002",
+                FirstName = "Test",
+                LastName = "Officer",
+                IsActive = true
+            },
+            new Officer
+            {
+                OfficerId = inactiveAdminOfficerId,
+                UserId = inactiveAdminUserId,
+                BadgeNumber = "AUTH003",
+                FirstName = "Inactive",
+                LastName = "Administrator",
+                IsActive = false
+            },
+            new Officer
+            {
+                OfficerId = noRoleOfficerId,
+                UserId = noRoleUserId,
+                BadgeNumber = "AUTH004",
+                FirstName = "No",
+                LastName = "Role",
+                IsActive = true
+            },
+            new Officer
+            {
+                OfficerId = "55555555-5555-5555-5555-555555555555",
+                UserId = null,
+                BadgeNumber = "AUTH005",
+                FirstName = "Target",
+                LastName = "Officer",
+                IsActive = true
+            }
+        );
+
+        db.OfficerRoles.AddRange(
+            new OfficerRole
+            {
+                OfficerRoleId = Guid.NewGuid().ToString(),
+                OfficerId = adminOfficerId,
+                RoleId = 2,
+                AssignedAt = DateTime.UtcNow
+            },
+            new OfficerRole
+            {
+                OfficerRoleId = Guid.NewGuid().ToString(),
+                OfficerId = officerOfficerId,
+                RoleId = 1,
+                AssignedAt = DateTime.UtcNow
+            },
+            new OfficerRole
+            {
+                OfficerRoleId = Guid.NewGuid().ToString(),
+                OfficerId = inactiveAdminOfficerId,
+                RoleId = 2,
+                AssignedAt = DateTime.UtcNow
+            }
+        );
+
+        db.SaveChanges();
     }
+    public static string CreateToken(string userId, bool expired = false)
+    {
+        const string secret = "test-only-signing-key-at-least-32-characters-long";
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var expires = expired
+            ? DateTime.UtcNow.AddMinutes(-5)
+            : DateTime.UtcNow.AddMinutes(5);
+
+        var token = new JwtSecurityToken(
+            issuer: "CmRegistrationService",
+            audience: "CmRegistrationClients",
+            claims: new[]
+            {
+                new Claim("sub", userId)
+            },
+            expires: expires,
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
 }
 
 public class IncidentsApiIntegrationTests : IClassFixture<IncidentsApiFactory>
@@ -172,4 +299,99 @@ public class IncidentsApiIntegrationTests : IClassFixture<IncidentsApiFactory>
         Assert.NotNull(catalog);
         Assert.Contains(catalog.Items, item => item.Id == created.Id);
     }
+        private const string RoleAssignmentUrl =
+        "/api/security/v1/personnel/55555555-5555-5555-5555-555555555555/role";
+
+        private const string AdminUserId =
+            "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+
+        private const string OfficerUserId =
+            "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+
+        private const string InactiveAdminUserId =
+            "cccccccc-cccc-cccc-cccc-cccccccccccc";
+
+        private const string NoRoleUserId =
+            "dddddddd-dddd-dddd-dddd-dddddddddddd";
+
+        private async Task SetAuthorizationToken(string userId)
+        {
+            var token = IncidentsApiFactory.CreateToken(userId);
+
+            _client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", token);
+
+        }
+
+        [Fact]
+        public async Task AssignRole_NoToken_ReturnsUnauthorized()
+        {
+            _client.DefaultRequestHeaders.Authorization = null;
+
+            var response = await _client.PutAsJsonAsync(
+                RoleAssignmentUrl,
+                new { roleName = "Police Officer" });
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task AssignRole_InvalidToken_ReturnsUnauthorized()
+        {
+            _client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", "invalid-token");
+
+            var response = await _client.PutAsJsonAsync(
+                RoleAssignmentUrl,
+                new { roleName = "Police Officer" });
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task AssignRole_PoliceOfficer_ReturnsForbidden()
+        {
+            SetAuthorizationToken(OfficerUserId);
+
+            var response = await _client.PutAsJsonAsync(
+                RoleAssignmentUrl,
+                new { roleName = "Police Officer" });
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task AssignRole_InactiveAdministrator_ReturnsForbidden()
+        {
+            SetAuthorizationToken(InactiveAdminUserId);
+
+            var response = await _client.PutAsJsonAsync(
+                RoleAssignmentUrl,
+                new { roleName = "Police Officer" });
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task AssignRole_OfficerWithoutRole_ReturnsForbidden()
+        {
+            SetAuthorizationToken(NoRoleUserId);
+
+            var response = await _client.PutAsJsonAsync(
+                RoleAssignmentUrl,
+                new { roleName = "Police Officer" });
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        }
+        [Fact]
+        public async Task AssignRole_ActiveAdministrator_ReturnsOk()
+        {
+            SetAuthorizationToken(AdminUserId);
+
+            var response = await _client.PutAsJsonAsync(
+                RoleAssignmentUrl,
+                new { roleName = "Police Officer" });
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
 }

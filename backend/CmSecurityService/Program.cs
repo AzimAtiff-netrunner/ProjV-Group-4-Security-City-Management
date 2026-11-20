@@ -11,9 +11,7 @@ using System.Text;
 using CmSecurityService.Models;
 using Microsoft.Extensions.Options;
 using System.Security.Principal;
-using CmSecurityService.Autorization;
 using CmSecurityService.Authorization;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,7 +71,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("SecurityAdminstrator", policy =>
+    options.AddPolicy("SecurityAdministrator", policy =>
     {
         policy.RequireAuthenticatedUser();
         policy.AddRequirements(new AdministratorRequirement());

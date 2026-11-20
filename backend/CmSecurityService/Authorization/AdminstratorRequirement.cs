@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
-namespace CmSecurityService.Autorization;
+namespace CmSecurityService.Authorization;
 
 public class AdministratorRequirement : IAuthorizationRequirement
 {
