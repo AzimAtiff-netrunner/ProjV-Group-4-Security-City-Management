@@ -118,4 +118,126 @@ public class PersonnelController : ControllerBase
             await transaction.DisposeAsync();
         }
     }
+
+    [HttpPost]
+    [Authorize(Policy = "SecurityAdministrator")]
+    [ProducesResponseType(typeof(PersonnelResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CreatePersonnel(
+        [FromBody] CreatePersonnelRequest request)
+    {
+        // Check that the requested role is one of our approved roles.
+        var allowedRoles = new[]
+        {
+            "Police Officer",
+            "Sergeant",
+            "Police Chief",
+            "Security Administrator"
+        };
+
+        var requestedRole = allowedRoles.FirstOrDefault(
+            r => r.Equals(request.RoleName?.Trim(),
+                StringComparison.OrdinalIgnoreCase));
+
+        if (requestedRole == null)
+            return BadRequest("Invalid role name.");
+
+        // Check that the role exists in the database.
+        var role = await _context.Roles
+            .FirstOrDefaultAsync(r => r.Name == requestedRole);
+
+        if (role == null)
+            return BadRequest("The requested role does not exist in the database.");
+
+        // Check for an existing badge number.
+        var badgeNumber = request.BadgeNumber.Trim();
+
+        bool badgeExists = await _context.Officers.AnyAsync(o => o.BadgeNumber == badgeNumber);
+
+        if (badgeExists)
+            return Conflict("A personnel record with this badge number already exists.");
+
+        // Create the officer record.
+        var officer = new Officer
+        {
+            OfficerId = Guid.NewGuid().ToString(),
+            UserId = string.IsNullOrWhiteSpace(request.UserId)
+                ? null
+                : request.UserId.Trim(),
+            BadgeNumber = badgeNumber,
+            FirstName = request.FirstName.Trim(),
+            LastName = request.LastName.Trim(),
+            RankTitle = request.RankTitle?.Trim(),
+            Phone = request.Phone?.Trim(),
+            Email = request.Email?.Trim(),
+            HireDate = request.HireDate,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // Create the initial role assignment.
+        var officerRole = new OfficerRole
+        {
+            OfficerId = officer.OfficerId,
+            RoleId = role.RoleId
+        };
+
+        // Save both records together.
+        Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction = null;
+
+        if (_context.Database.IsRelational())
+            transaction = await _context.Database.BeginTransactionAsync();
+
+        try
+        {
+            _context.Officers.Add(officer);
+            _context.OfficerRoles.Add(officerRole);
+
+            await _context.SaveChangesAsync();
+
+            if (transaction != null)
+                await transaction.CommitAsync();
+
+            var response = new PersonnelResponse
+            {
+                OfficerId = officer.OfficerId,
+                UserId = officer.UserId,
+                BadgeNumber = officer.BadgeNumber,
+                FirstName = officer.FirstName,
+                LastName = officer.LastName,
+                RankTitle = officer.RankTitle,
+                Phone = officer.Phone,
+                Email = officer.Email,
+                HireDate = officer.HireDate,
+                IsActive = officer.IsActive,
+                CreatedAt = officer.CreatedAt,
+                CurrentRole = role.Name
+            };
+
+            return StatusCode(StatusCodes.Status201Created, response);
+        }
+        catch (DbUpdateException)
+        {
+            if (transaction != null)
+                await transaction.RollbackAsync();
+
+            return Conflict(
+                "The personnel record could not be created. Check that the badge number and user ID are not already assigned and that the user ID exists.");
+        }
+        catch
+        {
+            if (transaction != null)
+                await transaction.RollbackAsync();
+
+            throw;
+        }
+        finally
+        {
+            if (transaction != null)
+                await transaction.DisposeAsync();
+        }
+    }
 }

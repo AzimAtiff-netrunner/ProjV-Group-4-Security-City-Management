@@ -10,6 +10,9 @@ services:
       ASPNETCORE_HTTP_PORTS: "8080"
       SecurityService__ServiceName: Security
       SecurityService__ExternalServiceTimeoutSeconds: "10"
+      Jwt__Secret: ${JWT_SECRET:?set JWT_SECRET in .env}
+      Jwt__Issue: ${JWT_ISSUE:-CmRegistrationService}
+      Jwt__Audience: ${JWT_AUDIENCE:-CmRegistrationClients}
       ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=security_db;User=security_app;Password=${MYSQL_PASSWORD};GuidFormat=None;"
     depends_on:
       mysql:
