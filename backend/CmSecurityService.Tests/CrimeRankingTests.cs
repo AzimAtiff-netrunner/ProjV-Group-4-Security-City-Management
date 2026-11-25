@@ -121,6 +121,23 @@ public class CrimeRankingTests
         Assert.Equal(new[] { 1, 2, 2, 4 }, rows.Select(r => r.Rank));
     }
 
+    [Fact]
+    public async Task Rankings_SameNeighborhoodWithDifferentCaseOrSpaces_IsCountedOnce()
+    {
+        using var db = NewContext();
+        // Uptown already has 1 incident; add 3 more spelled differently.
+        db.Incidents.AddRange(NewIncident("uptown", 12), NewIncident("Uptown ", 13), NewIncident("  UPTOWN", 14));
+        db.SaveChanges();
+
+        var result = await CreateController(db).GetCrimeRankings(new CrimeRankingQuery(), CancellationToken.None);
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var rankings = Assert.IsAssignableFrom<IReadOnlyList<NeighborhoodRankingDto>>(ok.Value);
+
+        var uptown = Assert.Single(rankings, r => r.Neighborhood.Equals("Uptown", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(4, uptown.IncidentCount);
+        Assert.Equal(4, rankings.Count);
+    }
+
     // ------------------------------------------------------------ invalid input
 
     [Theory]

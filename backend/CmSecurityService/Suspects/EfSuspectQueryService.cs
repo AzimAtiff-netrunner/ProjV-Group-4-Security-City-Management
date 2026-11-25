@@ -116,7 +116,25 @@ public class EfSuspectQueryService(AppDbContext db) : ISuspectQueryService
             .Select(g => new { Neighborhood = g.Key, IncidentCount = g.Count() })
             .ToListAsync(cancellationToken);
 
-        return Rank(counts.Select(c => (c.Neighborhood, c.IncidentCount)), top);
+        return Rank(MergeSameNeighborhood(counts.Select(c => (c.Neighborhood, c.IncidentCount))), top);
+    }
+
+    /// <summary>
+    /// Merges location spellings that are the same neighborhood, e.g. "Downtown", "downtown"
+    /// and "Downtown " (extra space), so a neighborhood is never counted twice.
+    /// The name shown is the spelling used by the most incidents, without extra spaces.
+    /// </summary>
+    /// <param name="counts">Incident counts per location exactly as stored.</param>
+    /// <returns>One row per neighborhood with the combined count.</returns>
+    public static IEnumerable<(string Neighborhood, int IncidentCount)> MergeSameNeighborhood(
+        IEnumerable<(string Neighborhood, int IncidentCount)> counts)
+    {
+        return counts
+            .Where(c => !string.IsNullOrWhiteSpace(c.Neighborhood))
+            .GroupBy(c => c.Neighborhood.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Select(g => (
+                Neighborhood: g.OrderByDescending(c => c.IncidentCount).First().Neighborhood.Trim(),
+                IncidentCount: g.Sum(c => c.IncidentCount)));
     }
 
     /// <summary>
