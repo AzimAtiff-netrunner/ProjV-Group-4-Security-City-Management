@@ -41,6 +41,17 @@ public class EfIncidentQueryService(AppDbContext db) : IIncidentQueryService
         if (!string.IsNullOrWhiteSpace(type))
         {
             var typeName = type.Trim();
+            // Same rule as status: an unknown type is an error (400), not an empty list.
+            var typeExists = await db.IncidentTypes
+                .AnyAsync(t => t.Name == typeName, cancellationToken);
+            if (!typeExists)
+            {
+                var valid = await db.IncidentTypes
+                    .Select(t => t.Name).ToListAsync(cancellationToken);
+                throw new ValidationException(
+                    $"type '{typeName}' is not valid. Use one of: {string.Join(", ", valid)}.");
+            }
+
             query = query.Where(i => i.IncidentType!.Name == typeName);
         }
 
