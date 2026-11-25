@@ -3,6 +3,7 @@ using CmSecurityService.Forwarding;
 using CmSecurityService.Calls;
 using CmSecurityService.Common;
 using CmSecurityService.Incidents;
+using CmSecurityService.Suspects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -45,6 +46,9 @@ builder.Services.AddSharedErrorFormat();
 
 // Register Birendra's View 9-1-1 Calls Service (Sprint 2)
 builder.Services.AddCallViewing();
+
+// Register Birendra's Suspect Records and Neighborhood Crime Rankings Service (#225)
+builder.Services.AddSuspectViewing();
 
 // OpenAPI/Swagger configuration
 builder.Services.AddEndpointsApiExplorer();
