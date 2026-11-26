@@ -44,4 +44,7 @@ How to run:
         SHOW TABLES; (shows tables in database)
         run different types of queries if needed.
 
+    Doxygen:
+        - doxygen Doxyfile
+
 Important: run the backend before the frontend
