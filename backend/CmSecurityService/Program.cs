@@ -3,6 +3,7 @@ using CmSecurityService.Forwarding;
 using CmSecurityService.Calls;
 using CmSecurityService.Common;
 using CmSecurityService.Incidents;
+using CmSecurityService.Suspects;
 using CmSecurityService.Vehicles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -51,6 +52,8 @@ builder.Services.AddSharedErrorFormat();
 // Register Birendra's View 9-1-1 Calls Service (Sprint 2)
 builder.Services.AddCallViewing();
 
+// Register Birendra's Suspect Records and Neighborhood Crime Rankings Service (#225)
+builder.Services.AddSuspectViewing();
 // Register vehicle list and telemetry service (Police Vehicle Telemetry)
 builder.Services.AddVehicleTelemetry();
 // Register Review Police Applications Service (#222)

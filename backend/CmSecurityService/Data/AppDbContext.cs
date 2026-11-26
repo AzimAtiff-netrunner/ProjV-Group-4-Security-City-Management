@@ -16,6 +16,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<IncidentType> IncidentTypes => Set<IncidentType>();
     public DbSet<IncidentStatus> IncidentStatuses => Set<IncidentStatus>();
 
+    // Suspect records (#225)
+    public DbSet<Suspect> Suspects => Set<Suspect>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<VehicleTelemetry> VehicleTelemetryRecords => Set<VehicleTelemetry>();
 
@@ -99,6 +101,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .HasForeignKey(x => x.IncidentTypeId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.IncidentStatus).WithMany()
                 .HasForeignKey(x => x.IncidentStatusId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Suspect records (#225): maps the existing suspect table in security_db.sql.
+        b.Entity<Suspect>(e =>
+        {
+            e.ToTable("suspect");
+            e.HasKey(x => x.SuspectId);
+            e.Property(x => x.SuspectId).HasColumnName("suspect_id").HasColumnType("char(36)").ValueGeneratedNever();
+            e.Property(x => x.FirstName).HasColumnName("first_name").HasMaxLength(100);
+            e.Property(x => x.LastName).HasColumnName("last_name").HasMaxLength(100);
+            e.Property(x => x.DateOfBirth).HasColumnName("date_of_birth");
+            e.Property(x => x.PhysicalDescription).HasColumnName("physical_description");
+            e.Property(x => x.KnownAliases).HasColumnName("known_aliases").HasMaxLength(500);
+            e.Property(x => x.Status).HasColumnName("status").HasMaxLength(50).IsRequired();
+            e.Property(x => x.CreatedAt).HasColumnName("created_at").HasPrecision(6);
         });
 
         b.Entity<Role>(e =>
