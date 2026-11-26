@@ -9,7 +9,7 @@ CREATE TABLE incident_type (
   PRIMARY KEY (incident_type_id),
   UNIQUE KEY uq_incident_type_name (name)
 );
- 
+
 CREATE TABLE incident_status (
   incident_status_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name               VARCHAR(50)  NOT NULL,
@@ -17,12 +17,12 @@ CREATE TABLE incident_status (
   PRIMARY KEY (incident_status_id),
   UNIQUE KEY uq_incident_status_name (name)
 );
- 
+
 CREATE TABLE incident (
   incident_id        CHAR(36)     NOT NULL DEFAULT (UUID()),
   incident_type_id   INT UNSIGNED NOT NULL,
   incident_title     VARCHAR(200) NOT NULL,
-  incident_location  VARCHAR(200) NOT NULL, 
+  incident_location  VARCHAR(200) NOT NULL,
   description        TEXT         NOT NULL,
   incident_status_id INT UNSIGNED NOT NULL,
   created_at         DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -37,7 +37,7 @@ CREATE TABLE incident (
   CONSTRAINT ck_incident_title    CHECK (CHAR_LENGTH(TRIM(incident_title)) > 0),
   CONSTRAINT ck_incident_location CHECK (CHAR_LENGTH(TRIM(incident_location)) > 0)
 );
- 
+
 INSERT INTO incident_status (name, description) VALUES
   ('Open',                'Incident has been reported'),
   ('Under Investigation', 'Officers are investigating'),
@@ -51,7 +51,7 @@ INSERT INTO incident_type (name, description) VALUES
   ('Traffic Accident', 'Collision or road incident'),
   ('Disturbance',      'Noise, public disorder or disputes'),
   ('Other',            'Anything not covered by another type');
-  
+
 
 
 
@@ -63,7 +63,7 @@ CREATE TABLE role (
   PRIMARY KEY (role_id),
   UNIQUE KEY uq_role_name (name)
 ) ENGINE=InnoDB;
- 
+
 CREATE TABLE permission (
   permission_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name          VARCHAR(100) NOT NULL,
@@ -71,7 +71,7 @@ CREATE TABLE permission (
   PRIMARY KEY (permission_id),
   UNIQUE KEY uq_permission_name (name)
 );
- 
+
 CREATE TABLE role_permission (
   role_id       INT UNSIGNED NOT NULL,
   permission_id INT UNSIGNED NOT NULL,
@@ -81,7 +81,7 @@ CREATE TABLE role_permission (
   CONSTRAINT fk_role_permission_permission
     FOREIGN KEY (permission_id) REFERENCES permission (permission_id)
 );
- 
+
 CREATE TABLE user_account (
   user_id       CHAR(36)     NOT NULL DEFAULT (UUID()),
   username      VARCHAR(100) NOT NULL,
@@ -92,7 +92,7 @@ CREATE TABLE user_account (
   PRIMARY KEY (user_id),
   UNIQUE KEY uq_user_account_username (username)
 );
- 
+
 
 -- 3. REGISTRATION
 CREATE TABLE officer (
@@ -113,7 +113,7 @@ CREATE TABLE officer (
   CONSTRAINT fk_officer_user
     FOREIGN KEY (user_id) REFERENCES user_account (user_id)
 );
- 
+
 -- Role assignment (an officer can hold several roles over time)
 CREATE TABLE officer_role (
   officer_role_id CHAR(36)     NOT NULL DEFAULT (UUID()),
@@ -129,7 +129,7 @@ CREATE TABLE officer_role (
   CONSTRAINT fk_officer_role_role
     FOREIGN KEY (role_id) REFERENCES role (role_id)
 );
- 
+
 CREATE TABLE detective (
   detective_id   CHAR(36)    NOT NULL DEFAULT (UUID()),
   officer_id     CHAR(36)    NOT NULL,
@@ -139,7 +139,7 @@ CREATE TABLE detective (
   CONSTRAINT fk_detective_officer
     FOREIGN KEY (officer_id) REFERENCES officer (officer_id)
 ) ENGINE=InnoDB;
- 
+
 CREATE TABLE forensic_staff (
   forensic_staff_id CHAR(36)     NOT NULL DEFAULT (UUID()),
   user_id           CHAR(36)     NULL,
@@ -166,7 +166,7 @@ CREATE TABLE suspect (
   created_at          DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (suspect_id)
 );
- 
+
 CREATE TABLE detainee (
   detainee_id          CHAR(36)     NOT NULL DEFAULT (UUID()),
   suspect_id           CHAR(36)     NULL,
@@ -267,3 +267,63 @@ INSERT INTO vehicle_telemetry(vehicle_id, street_number, street_name, city, post
 ('22222222-2222-4222-8222-222222222222', '75', 'Weber Street North', 'Waterloo', 'N2J 3H7', 62.0, 180.00, UTC_TIMESTAMP(6) - INTERVAL 2 MINUTE);
 
 
+-- 5. POLICE APPLICATIONS (User Story #222)
+CREATE TABLE police_application (
+  application_id         CHAR(36)     NOT NULL DEFAULT (UUID()),
+  user_id                CHAR(36)     NULL,
+  first_name             VARCHAR(100) NOT NULL,
+  last_name              VARCHAR(100) NOT NULL,
+  email                  VARCHAR(255) NOT NULL,
+  phone                  VARCHAR(30)  NULL,
+  date_of_birth          DATE         NOT NULL,
+  address                VARCHAR(255) NOT NULL,
+  qualifications         TEXT         NULL,
+  experience_years       INT UNSIGNED NOT NULL DEFAULT 0,
+  status                 VARCHAR(20)  NOT NULL DEFAULT 'Pending',
+  reviewer_notes         VARCHAR(500) NULL,
+  reviewed_by_officer_id CHAR(36)     NULL,
+  submitted_at           DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  reviewed_at            DATETIME(6)  NULL,
+  PRIMARY KEY (application_id),
+  KEY ix_police_application_status (status),
+  KEY ix_police_application_submitted_at (submitted_at),
+  CONSTRAINT fk_police_application_user
+    FOREIGN KEY (user_id) REFERENCES user_account (user_id),
+  CONSTRAINT fk_police_application_reviewer
+    FOREIGN KEY (reviewed_by_officer_id) REFERENCES officer (officer_id),
+  CONSTRAINT ck_police_application_status
+    CHECK (status IN ('Pending', 'Approved', 'Rejected')),
+  CONSTRAINT ck_police_application_first_name
+    CHECK (CHAR_LENGTH(TRIM(first_name)) > 0),
+  CONSTRAINT ck_police_application_last_name
+    CHECK (CHAR_LENGTH(TRIM(last_name)) > 0),
+  CONSTRAINT ck_police_application_email
+    CHECK (CHAR_LENGTH(TRIM(email)) > 0)
+) ENGINE=InnoDB;
+
+-- Demo police applications for Swagger & manual testing
+INSERT INTO police_application (
+  application_id, first_name, last_name, email, phone, date_of_birth,
+  address, qualifications, experience_years, status, submitted_at
+) VALUES
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
+    'Marcus', 'Vance', 'marcus.vance@example.ca', '519-555-0141', '1997-04-18',
+    '120 King Street North, Waterloo, ON',
+    'Police Foundations Diploma (Conestoga College), First Aid & CPR-C Certified',
+    2, 'Pending', UTC_TIMESTAMP(6) - INTERVAL 2 DAY
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2',
+    'Elena', 'Rostova', 'elena.rostova@example.ca', '519-555-0188', '1995-09-03',
+    '450 Erb Street West, Waterloo, ON',
+    'B.A. Criminology (Wilfrid Laurier University), Auxiliary Constable Volunteer',
+    3, 'Pending', UTC_TIMESTAMP(6) - INTERVAL 1 DAY
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3',
+    'Devon', 'Brooks', 'devon.brooks@example.ca', '519-555-0199', '1993-11-27',
+    '88 Weber Street South, Waterloo, ON',
+    'Former Municipal Bylaw Enforcement Officer, De-escalation Training',
+    4, 'Approved', UTC_TIMESTAMP(6) - INTERVAL 5 DAY
+  );

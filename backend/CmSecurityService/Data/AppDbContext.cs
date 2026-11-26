@@ -1,6 +1,7 @@
 using CmSecurityService.Models;
 using CmSecurityService.Vehicles;
 using Microsoft.EntityFrameworkCore;
+using CmSecurityService.Applications;
 
 namespace CmSecurityService.Data;
 
@@ -17,6 +18,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<VehicleTelemetry> VehicleTelemetryRecords => Set<VehicleTelemetry>();
+
+    public DbSet<PoliceApplication> PoliceApplications => Set<PoliceApplication>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -133,6 +136,32 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(x => x.OfficerId).HasDatabaseName("ix_officer_role_officer");
 
             e.HasIndex(x => x.RoleId).HasDatabaseName("ix_officer_role_role");
+        });
+
+        b.Entity<PoliceApplication>(e =>
+        {
+            e.ToTable("police_application");
+            e.HasKey(x => x.ApplicationId);
+            e.Property(x => x.ApplicationId).HasColumnName("application_id").HasColumnType("char(36)").ValueGeneratedOnAdd();
+            e.Property(x => x.UserId).HasColumnName("user_id").HasColumnType("char(36)");
+            e.Property(x => x.FirstName).HasColumnName("first_name").HasMaxLength(100).IsRequired();
+            e.Property(x => x.LastName).HasColumnName("last_name").HasMaxLength(100).IsRequired();
+            e.Property(x => x.Email).HasColumnName("email").HasMaxLength(255).IsRequired();
+            e.Property(x => x.Phone).HasColumnName("phone").HasMaxLength(30);
+            e.Property(x => x.DateOfBirth).HasColumnName("date_of_birth").HasColumnType("date").IsRequired();
+            e.Property(x => x.Address).HasColumnName("address").HasMaxLength(255).IsRequired();
+            e.Property(x => x.Qualifications).HasColumnName("qualifications");
+            e.Property(x => x.ExperienceYears).HasColumnName("experience_years").IsRequired();
+            e.Property(x => x.Status).HasColumnName("status").HasMaxLength(20)
+                .HasConversion<string>().IsRequired();
+            e.Property(x => x.ReviewerNotes).HasColumnName("reviewer_notes").HasMaxLength(500);
+            e.Property(x => x.ReviewedByOfficerId).HasColumnName("reviewed_by_officer_id").HasColumnType("char(36)");
+            e.Property(x => x.SubmittedAt).HasColumnName("submitted_at").HasPrecision(6).ValueGeneratedOnAdd();
+            e.Property(x => x.ReviewedAt).HasColumnName("reviewed_at").HasPrecision(6);
+            e.HasOne(x => x.ReviewedByOfficer).WithMany()
+                .HasForeignKey(x => x.ReviewedByOfficerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => x.Status).HasDatabaseName("ix_police_application_status");
+            e.HasIndex(x => x.SubmittedAt).HasDatabaseName("ix_police_application_submitted_at");
         });
     }
 }
