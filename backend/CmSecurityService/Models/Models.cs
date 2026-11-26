@@ -18,8 +18,10 @@ public class Incident
 {
     public Guid IncidentId { get; set; }
     public uint IncidentTypeId { get; set; }
-    public string Description { get; set; } = "";
     public uint IncidentStatusId { get; set; }
+    public string Title { get; set; } = "";
+    public string Description { get; set; } = "";
+    public string Location { get; set; } = "";
     public DateTime CreatedAt { get; set; }
 
     public IncidentType? IncidentType { get; set; }

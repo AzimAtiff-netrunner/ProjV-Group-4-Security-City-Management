@@ -11,7 +11,7 @@ namespace CmSecurityService.Incidents;
 public class IncidentDto
 {
     /// <summary>Unique incident identifier.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Short headline of the incident.</summary>
     public string Title { get; set; } = string.Empty;
