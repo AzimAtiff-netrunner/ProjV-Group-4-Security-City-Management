@@ -22,6 +22,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 namespace CmSecurityService.Tests;
+using CmSecurityService.RoadClosures;
 
 /// <summary>
 /// Runs the real app against an in-memory database instead of MySQL.
@@ -50,7 +51,7 @@ public class IncidentsApiFactory : WebApplicationFactory<Program>
         });
     }
 
-    private static async Task Seed(AppDbContext db)
+    private void Seed(AppDbContext db)
     {
         // Ids of types and statuses are left for EF to generate.
         var types = new[] { "Theft", "Vandalism", "Burglary", "Traffic", "Disturbance", "Emergency" }
@@ -314,7 +315,7 @@ public class IncidentsApiIntegrationTests : IClassFixture<IncidentsApiFactory>
         private const string NoRoleUserId =
             "dddddddd-dddd-dddd-dddd-dddddddddddd";
 
-        private async Task SetAuthorizationToken(string userId)
+        private void SetAuthorizationToken(string userId)
         {
             var token = IncidentsApiFactory.CreateToken(userId);
 
@@ -393,5 +394,56 @@ public class IncidentsApiIntegrationTests : IClassFixture<IncidentsApiFactory>
                 new { roleName = "Police Officer" });
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+        [Fact]
+        public async Task Get_RoadClosures_ReturnsOk()
+        {
+            var response = await _client.GetAsync(
+                "/api/security/v1/road-closures");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task Get_RoadClosures_ReturnsOnlyActiveClosures()
+        {
+            var response = await _client.GetAsync(
+                "/api/security/v1/road-closures");
+
+            var closures =
+                await response.Content.ReadFromJsonAsync<
+                    List<RoadClosureResponse>>(_jsonOptions);
+
+            Assert.NotNull(closures);
+
+            Assert.Contains(closures, closure =>
+                closure.RoadName == "King Street");
+
+            Assert.Contains(closures, closure =>
+                closure.RoadName == "Weber Street");
+
+            Assert.DoesNotContain(closures, closure =>
+                closure.RoadName == "Victoria Street");
+        }
+
+        [Fact]
+        public async Task Get_RoadClosures_ReturnsExpectedClosureDetails()
+        {
+            var response = await _client.GetAsync(
+                "/api/security/v1/road-closures");
+
+            var closures =
+                await response.Content.ReadFromJsonAsync<
+                    List<RoadClosureResponse>>(_jsonOptions);
+
+            Assert.NotNull(closures);
+
+            var kingStreet = Assert.Single(
+                closures.Where(c => c.RoadName == "King Street"));
+
+            Assert.Equal("Active", kingStreet.Status);
+            Assert.Equal(
+                "Between Queen Street and Ontario Street",
+                kingStreet.Location);
         }
 }
