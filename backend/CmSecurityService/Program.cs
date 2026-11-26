@@ -15,6 +15,7 @@ using System.Security.Principal;
 using CmSecurityService.Authorization;
 using Microsoft.OpenApi.Models;
 using CmSecurityService.Applications;
+using CmSecurityService.RoadClosures;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +33,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Register View Incidents Service (#216)
 builder.Services.AddIncidentViewing();
+
+builder.Services.AddSingleton<IRoadClosureService, InMemoryRoadClosureService>();
 
 // Register 9-1-1 Call Forwarding Client & Service (#219)
 builder.Services.AddHttpClient<IEmergencyServiceClient, EmergencyServiceClient>(client =>

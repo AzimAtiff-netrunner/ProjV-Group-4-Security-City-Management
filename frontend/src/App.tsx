@@ -17,6 +17,17 @@ interface Personnel {
   currentRole: string | null
 }
 
+interface RoadClosure {
+  closureId: string
+  roadName: string
+  description: string
+  location: string
+  startDate: string
+  endDate: string | null
+  status: string
+  lastUpdated: string
+}
+
 interface CreatePersonnelForm {
   userId: string
   badgeNumber: string
@@ -59,6 +70,9 @@ function App() {
   const [submitting, setSubmitting] = useState(false)
   const [roleChanges, setRoleChanges] = useState<Record<string, string>> ({})
   const [updatingOfficerId, setUpdatingOfficerId] = useState<string | null>(null)
+  const [roadClosures, setRoadClosures] = useState<RoadClosure[]>([])
+  const [closuresLoading, setClosuresLoading] = useState(true)
+  const [closuresError, setClosuresError] = useState('')
 
   const fetchPersonnel = async () => {
     setLoading(true)
@@ -84,8 +98,36 @@ function App() {
     }
   }
 
+  const fetchRoadClosures = async () => {
+  setClosuresLoading(true)
+  setClosuresError('')
+
+  try {
+    const response = await fetch('/api/security/v1/road-closures')
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to load road closures. Status: ${response.status}`
+      )
+    }
+
+    const data: RoadClosure[] = await response.json()
+    setRoadClosures(data)
+  } catch (err) {
+    setClosuresError(
+      err instanceof Error
+        ? err.message
+        : 'An unexpected error occurred.'
+    )
+  } finally {
+    setClosuresLoading(false)
+  }
+}
+
   useEffect(() => {
     void Promise.resolve().then(fetchPersonnel)
+    void fetchPersonnel()
+    void fetchRoadClosures()
   }, [])
 
   const handleFormChange = (
@@ -502,6 +544,71 @@ function App() {
       </section>
         </>
       )}
+      <section className="personnel-section road-closures-section">
+        <div className="section-header">
+          <div>
+            <h2>Road Closure Notifications</h2>
+            <p>View currently active road closures and their locations.</p>
+          </div>
+
+          <button
+            className="refresh-button"
+            onClick={() => void fetchRoadClosures()}
+            disabled={closuresLoading}
+          >
+            {closuresLoading ? 'Loading...' : 'Refresh Closures'}
+          </button>
+        </div>
+
+        {closuresError && (
+          <div className="error-message" role="alert">
+            {closuresError}
+          </div>
+        )}
+
+        {closuresLoading ? (
+          <p className="status-message">Loading road closures...</p>
+        ) : roadClosures.length === 0 ? (
+          <p className="status-message">
+            There are currently no active road closures.
+          </p>
+        ) : (
+          <div className="road-closure-list">
+            {roadClosures.map((closure) => (
+              <article className="road-closure-card" key={closure.closureId}>
+                <div className="road-closure-header">
+                  <h3>{closure.roadName}</h3>
+                  <span className="status-badge active">
+                    {closure.status}
+                  </span>
+                </div>
+
+                <p>{closure.description}</p>
+
+                <p>
+                  <strong>Location:</strong> {closure.location}
+                </p>
+
+                <p>
+                  <strong>Started:</strong>{' '}
+                  {new Date(closure.startDate).toLocaleString()}
+                </p>
+
+                <p>
+                  <strong>Expected End:</strong>{' '}
+                  {closure.endDate
+                    ? new Date(closure.endDate).toLocaleString()
+                    : 'Unknown'}
+                </p>
+
+                <p className="closure-updated">
+                  Last updated: {new Date(closure.lastUpdated).toLocaleString()}
+                </p>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </main>
   )
 }

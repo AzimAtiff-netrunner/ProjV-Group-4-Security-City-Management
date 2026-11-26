@@ -354,3 +354,41 @@ td {
   cursor: pointer;
 }
 .dashboard-tabs button.selected { border-bottom-color: #2563eb; color: #1e3a5f; }
+
+.road-closures-section {
+  margin-top: 24px;
+}
+
+.road-closure-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.road-closure-card {
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.road-closure-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.road-closure-header h3 {
+  margin: 0;
+}
+
+.road-closure-card p {
+  margin: 10px 0;
+}
+
+.closure-updated {
+  color: #666;
+  font-size: 0.85rem;
+}
