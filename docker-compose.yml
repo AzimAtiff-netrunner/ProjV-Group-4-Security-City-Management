@@ -32,6 +32,7 @@ services:
     volumes:
       - security_mysql_data:/var/lib/mysql
       - ./backend/CmSecurityService/Database/security_db.sql:/docker-entrypoint-initdb.d/01-security_db.sql:ro
+      - ./backend/CmSecurityService/Database/dev_seed.sql:/docker-entrypoint-initdb.d/02-dev_seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
       interval: 10s

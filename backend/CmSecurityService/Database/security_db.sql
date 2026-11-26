@@ -188,3 +188,82 @@ CREATE TABLE detainee (
     FOREIGN KEY (detaining_officer_id) REFERENCES officer (officer_id)
 );
 
+
+
+-- 4. POLICE VEHICLE TELEMETRY
+-- vehicle_id is the unique vehicle identifier exposed by the API (AC 2).
+-- callsign and license_plate are also unique so the same car cannot be registered twice.
+CREATE TABLE vehicle (
+  vehicle_id    CHAR(36)     NOT NULL DEFAULT (UUID()),
+  callsign      VARCHAR(30)  NOT NULL,
+  license_plate VARCHAR(20)  NOT NULL,
+  status        VARCHAR(30)  NOT NULL DEFAULT 'Available',
+  is_active     TINYINT(1)   NOT NULL DEFAULT 1,
+  created_at    DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (vehicle_id),
+  UNIQUE KEY uq_vehicle_callsign (callsign),
+  UNIQUE KEY uq_vehicle_license_plate (license_plate),
+  CONSTRAINT ck_vehicle_status
+    CHECK (status IN ('Available', 'OnPatrol', 'Dispatched', 'OutOfService')),
+  CONSTRAINT ck_vehicle_callsign CHECK (CHAR_LENGTH(TRIM(callsign)) > 0)
+);
+
+-- Append-only history of location updates (AC 3, 4). Rows are never overwritten:
+-- the "current location" is simply the row with the newest recorded_at.
+--   recorded_at = when the vehicle reported the position (UTC, from the device)
+--   received_at = when the server stored it (UTC)
+CREATE TABLE vehicle_telemetry (
+  telemetry_id    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  vehicle_id      CHAR(36)        NOT NULL,
+
+  street_number   VARCHAR(10)     NOT NULL,
+  street_name     VARCHAR(100)    NOT NULL,
+  city            VARCHAR(50)     NOT NULL DEFAULT 'Waterloo',
+  postal_code     VARCHAR(7)      NOT NULL,
+
+  speed_kmh       DECIMAL(5,1)    NULL,
+  heading_degrees DECIMAL(5,2)    NULL,
+
+  recorded_at     DATETIME(6)     NOT NULL,
+  received_at     DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+  PRIMARY KEY (telemetry_id),
+
+  UNIQUE KEY uq_telemetry_vehicle_recorded (vehicle_id, recorded_at DESC),
+
+  CONSTRAINT fk_telemetry_vehicle
+    FOREIGN KEY (vehicle_id) REFERENCES vehicle (vehicle_id),
+
+  CONSTRAINT ck_telemetry_city
+    CHECK (city = 'Waterloo'),
+
+  CONSTRAINT ck_telemetry_street_number
+    CHECK (CHAR_LENGTH(TRIM(street_number)) > 0),
+
+  CONSTRAINT ck_telemetry_street_name
+    CHECK (CHAR_LENGTH(TRIM(street_name)) > 0),
+
+  CONSTRAINT ck_telemetry_postal_code
+    CHECK (postal_code REGEXP '^[A-Z][0-9][A-Z] ?[0-9][A-Z][0-9]$'),
+
+  CONSTRAINT ck_telemetry_speed
+    CHECK (speed_kmh IS NULL OR speed_kmh >= 0),
+
+  CONSTRAINT ck_telemetry_heading
+    CHECK (heading_degrees IS NULL OR (heading_degrees >= 0 AND heading_degrees < 360))
+);
+
+-- Demo data (fixed ids so API examples and tests are predictable)
+INSERT INTO vehicle (vehicle_id, callsign, license_plate, status) VALUES
+  ('11111111-1111-4111-8111-111111111111', 'UNIT-101', 'CPL 101', 'OnPatrol'),
+  ('22222222-2222-4222-8222-222222222222', 'UNIT-102', 'CPL 102', 'Dispatched'),
+  ('33333333-3333-4333-8333-333333333333', 'UNIT-103', 'CPL 103', 'OutOfService');
+
+-- UNIT-101 and UNIT-102 have history; UNIT-103 deliberately has none (tests the "no telemetry yet" case).
+INSERT INTO vehicle_telemetry(vehicle_id, street_number, street_name, city, postal_code, speed_kmh, heading_degrees, recorded_at) VALUES
+('11111111-1111-4111-8111-111111111111', '200', 'University Avenue West', 'Waterloo', 'N2L 3G1', 40.0, 90.00, UTC_TIMESTAMP(6) - INTERVAL 10 MINUTE),
+('11111111-1111-4111-8111-111111111111', '50', 'King Street North', 'Waterloo', 'N2J 2W9', 35.5, 95.00, UTC_TIMESTAMP(6) - INTERVAL 5 MINUTE),
+('11111111-1111-4111-8111-111111111111', '300', 'Erb Street West', 'Waterloo', 'N2L 1W3', 0.0, 95.00, UTC_TIMESTAMP(6) - INTERVAL 1 MINUTE),
+('22222222-2222-4222-8222-222222222222', '75', 'Weber Street North', 'Waterloo', 'N2J 3H7', 62.0, 180.00, UTC_TIMESTAMP(6) - INTERVAL 2 MINUTE);
+
+
