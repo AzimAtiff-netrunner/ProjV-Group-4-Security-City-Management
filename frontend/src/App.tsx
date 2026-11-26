@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import './App.css'
+import VehicleDashboard from './VehicleDashboard'
 
 interface Personnel {
   officerId: string
@@ -14,6 +15,17 @@ interface Personnel {
   isActive: boolean
   createdAt: string
   currentRole: string | null
+}
+
+interface RoadClosure {
+  closureId: string
+  roadName: string
+  description: string
+  location: string
+  startDate: string
+  endDate: string | null
+  status: string
+  lastUpdated: string
 }
 
 interface CreatePersonnelForm {
@@ -49,6 +61,7 @@ const roles = [
 
 function App() {
   const [personnel, setPersonnel] = useState<Personnel[]>([])
+  const [activeView, setActiveView] = useState<'personnel' | 'vehicles'>('personnel')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -57,6 +70,9 @@ function App() {
   const [submitting, setSubmitting] = useState(false)
   const [roleChanges, setRoleChanges] = useState<Record<string, string>> ({})
   const [updatingOfficerId, setUpdatingOfficerId] = useState<string | null>(null)
+  const [roadClosures, setRoadClosures] = useState<RoadClosure[]>([])
+  const [closuresLoading, setClosuresLoading] = useState(true)
+  const [closuresError, setClosuresError] = useState('')
 
   const fetchPersonnel = async () => {
     setLoading(true)
@@ -82,8 +98,36 @@ function App() {
     }
   }
 
+  const fetchRoadClosures = async () => {
+  setClosuresLoading(true)
+  setClosuresError('')
+
+  try {
+    const response = await fetch('/api/security/v1/road-closures')
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to load road closures. Status: ${response.status}`
+      )
+    }
+
+    const data: RoadClosure[] = await response.json()
+    setRoadClosures(data)
+  } catch (err) {
+    setClosuresError(
+      err instanceof Error
+        ? err.message
+        : 'An unexpected error occurred.'
+    )
+  } finally {
+    setClosuresLoading(false)
+  }
+}
+
   useEffect(() => {
+    void Promise.resolve().then(fetchPersonnel)
     void fetchPersonnel()
+    void fetchRoadClosures()
   }, [])
 
   const handleFormChange = (
@@ -213,15 +257,40 @@ function App() {
           </p>
         </div>
 
-        <button
-          className="refresh-button"
-          onClick={() => void fetchPersonnel()}
-          disabled={loading}
-        >
-          {loading ? 'Loading...' : 'Refresh'}
-        </button>
+        {activeView === 'personnel' && (
+          <button
+            className="refresh-button"
+            onClick={() => void fetchPersonnel()}
+            disabled={loading}
+          >
+            {loading ? 'Loading...' : 'Refresh personnel'}
+          </button>
+        )}
       </header>
 
+      <section className="shared-token-section">
+        <label htmlFor="api-token">API Access JWT *
+          <input
+            id="api-token"
+            type="password"
+            value={token}
+            onChange={(event) => setToken(event.target.value)}
+            placeholder="Paste your officer or administrator JWT"
+            autoComplete="off"
+          />
+        </label>
+        <p>This token is kept only in this page's memory. It is required to access protected vehicle endpoints and perform personnel administration actions.</p>
+      </section>
+
+      <nav className="dashboard-tabs" aria-label="Dashboard sections">
+        <button className={activeView === 'personnel' ? 'selected' : ''} onClick={() => setActiveView('personnel')}>Personnel</button>
+        <button className={activeView === 'vehicles' ? 'selected' : ''} onClick={() => setActiveView('vehicles')}>Police Vehicles</button>
+      </nav>
+
+      {activeView === 'vehicles' ? (
+        <VehicleDashboard token={token} />
+      ) : (
+        <>
       <section className="summary">
         <div className="summary-card">
           <p>Total Personnel</p>
@@ -353,23 +422,6 @@ function App() {
             </label>
           </div>
 
-          <div className="token-field">
-            <label>
-              Security Administrator JWT *
-              <input
-                type="password"
-                value={token}
-                onChange={(event) => setToken(event.target.value)}
-                placeholder="Paste your JWT access token"
-                autoComplete="off"
-              />
-            </label>
-            <p>
-              Temporary testing field. Your token is kept only in this page's
-              memory.
-            </p>
-          </div>
-
           {error && (
             <div className="error-message" role="alert">
               {error}
@@ -487,6 +539,73 @@ function App() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </section>
+        </>
+      )}
+      <section className="personnel-section road-closures-section">
+        <div className="section-header">
+          <div>
+            <h2>Road Closure Notifications</h2>
+            <p>View currently active road closures and their locations.</p>
+          </div>
+
+          <button
+            className="refresh-button"
+            onClick={() => void fetchRoadClosures()}
+            disabled={closuresLoading}
+          >
+            {closuresLoading ? 'Loading...' : 'Refresh Closures'}
+          </button>
+        </div>
+
+        {closuresError && (
+          <div className="error-message" role="alert">
+            {closuresError}
+          </div>
+        )}
+
+        {closuresLoading ? (
+          <p className="status-message">Loading road closures...</p>
+        ) : roadClosures.length === 0 ? (
+          <p className="status-message">
+            There are currently no active road closures.
+          </p>
+        ) : (
+          <div className="road-closure-list">
+            {roadClosures.map((closure) => (
+              <article className="road-closure-card" key={closure.closureId}>
+                <div className="road-closure-header">
+                  <h3>{closure.roadName}</h3>
+                  <span className="status-badge active">
+                    {closure.status}
+                  </span>
+                </div>
+
+                <p>{closure.description}</p>
+
+                <p>
+                  <strong>Location:</strong> {closure.location}
+                </p>
+
+                <p>
+                  <strong>Started:</strong>{' '}
+                  {new Date(closure.startDate).toLocaleString()}
+                </p>
+
+                <p>
+                  <strong>Expected End:</strong>{' '}
+                  {closure.endDate
+                    ? new Date(closure.endDate).toLocaleString()
+                    : 'Unknown'}
+                </p>
+
+                <p className="closure-updated">
+                  Last updated: {new Date(closure.lastUpdated).toLocaleString()}
+                </p>
+              </article>
+            ))}
           </div>
         )}
       </section>

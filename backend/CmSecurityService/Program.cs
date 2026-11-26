@@ -4,6 +4,7 @@ using CmSecurityService.Calls;
 using CmSecurityService.Common;
 using CmSecurityService.Incidents;
 using CmSecurityService.Suspects;
+using CmSecurityService.Vehicles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -14,6 +15,8 @@ using Microsoft.Extensions.Options;
 using System.Security.Principal;
 using CmSecurityService.Authorization;
 using Microsoft.OpenApi.Models;
+using CmSecurityService.Applications;
+using CmSecurityService.RoadClosures;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +35,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Register View Incidents Service (#216)
 builder.Services.AddIncidentViewing();
 
+builder.Services.AddSingleton<IRoadClosureService, InMemoryRoadClosureService>();
+
 // Register 9-1-1 Call Forwarding Client & Service (#219)
 builder.Services.AddHttpClient<IEmergencyServiceClient, EmergencyServiceClient>(client =>
 {
@@ -49,6 +54,10 @@ builder.Services.AddCallViewing();
 
 // Register Birendra's Suspect Records and Neighborhood Crime Rankings Service (#225)
 builder.Services.AddSuspectViewing();
+// Register vehicle list and telemetry service (Police Vehicle Telemetry)
+builder.Services.AddVehicleTelemetry();
+// Register Review Police Applications Service (#222)
+builder.Services.AddPoliceApplications();
 
 // OpenAPI/Swagger configuration
 builder.Services.AddEndpointsApiExplorer();
@@ -113,9 +122,29 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser();
         policy.AddRequirements(new AdministratorRequirement());
     });
+
+    // Vehicle telemetry: any active officer may read, only Security Administrators may record.
+    options.AddPolicy(TelemetryPolicies.Viewer, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new OfficerRoleRequirement(TelemetryPolicies.ViewerRoles));
+    });
+
+    options.AddPolicy(TelemetryPolicies.Writer, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new OfficerRoleRequirement(TelemetryPolicies.WriterRoles));
+    });
+
+    options.AddPolicy(TelemetryPolicies.Manager, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new OfficerRoleRequirement(TelemetryPolicies.ManagerRoles));
+    });
 });
 
 builder.Services.AddScoped<IAuthorizationHandler, SecurityAdministratorHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, OfficerRoleHandler>();
 
 var app = builder.Build();
 

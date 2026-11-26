@@ -309,3 +309,86 @@ td {
   opacity: 0.6;
   cursor: not-allowed;
 }
+.shared-token-section {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0 0 18px;
+  padding: 16px 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+.shared-token-section label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+.shared-token-section input {
+  width: 100%;
+  max-width: 620px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: #1e293b;
+  font: inherit;
+}
+.shared-token-section p { margin: 0; color: #64748b; font-size: 11px; }
+.dashboard-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #cbd5e1;
+}
+.dashboard-tabs button {
+  padding: 11px 16px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dashboard-tabs button.selected { border-bottom-color: #2563eb; color: #1e3a5f; }
+
+.road-closures-section {
+  margin-top: 24px;
+}
+
+.road-closure-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.road-closure-card {
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.road-closure-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.road-closure-header h3 {
+  margin: 0;
+}
+
+.road-closure-card p {
+  margin: 10px 0;
+}
+
+.closure-updated {
+  color: #666;
+  font-size: 0.85rem;
+}

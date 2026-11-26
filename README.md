@@ -29,6 +29,9 @@ How to run:
         docker running in the background (docker desktop recommended)
         docker compose up --build (from root)
         To rebuild: docker compose up --build -d security-api
+    
+    JWT: 
+        node scripts\make-dev-token.js admin
 
     Tests: 
         frontend: npm test
@@ -40,5 +43,8 @@ How to run:
         docker compose exec mysql mysql -u security_app -p security_db (enter application password when asked)
         SHOW TABLES; (shows tables in database)
         run different types of queries if needed.
+
+    Doxygen:
+        - doxygen Doxyfile
 
 Important: run the backend before the frontend
