@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 using System.Security.Principal;
 using CmSecurityService.Authorization;
 using Microsoft.OpenApi.Models;
+using CmSecurityService.Applications;
 using CmSecurityService.RoadClosures;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -52,6 +53,8 @@ builder.Services.AddCallViewing();
 
 // Register vehicle list and telemetry service (Police Vehicle Telemetry)
 builder.Services.AddVehicleTelemetry();
+// Register Review Police Applications Service (#222)
+builder.Services.AddPoliceApplications();
 
 // OpenAPI/Swagger configuration
 builder.Services.AddEndpointsApiExplorer();
