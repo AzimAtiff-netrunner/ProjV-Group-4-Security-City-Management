@@ -3,6 +3,7 @@ using CmSecurityService.Forwarding;
 using CmSecurityService.Calls;
 using CmSecurityService.Common;
 using CmSecurityService.Incidents;
+using CmSecurityService.Vehicles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -45,6 +46,9 @@ builder.Services.AddSharedErrorFormat();
 
 // Register Birendra's View 9-1-1 Calls Service (Sprint 2)
 builder.Services.AddCallViewing();
+
+// Register vehicle list and telemetry service (Police Vehicle Telemetry)
+builder.Services.AddVehicleTelemetry();
 
 // OpenAPI/Swagger configuration
 builder.Services.AddEndpointsApiExplorer();
@@ -109,9 +113,29 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser();
         policy.AddRequirements(new AdministratorRequirement());
     });
+
+    // Vehicle telemetry: any active officer may read, only Security Administrators may record.
+    options.AddPolicy(TelemetryPolicies.Viewer, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new OfficerRoleRequirement(TelemetryPolicies.ViewerRoles));
+    });
+
+    options.AddPolicy(TelemetryPolicies.Writer, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new OfficerRoleRequirement(TelemetryPolicies.WriterRoles));
+    });
+
+    options.AddPolicy(TelemetryPolicies.Manager, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new OfficerRoleRequirement(TelemetryPolicies.ManagerRoles));
+    });
 });
 
 builder.Services.AddScoped<IAuthorizationHandler, SecurityAdministratorHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, OfficerRoleHandler>();
 
 var app = builder.Build();
 

@@ -1,4 +1,5 @@
 using CmSecurityService.Models;
+using CmSecurityService.Vehicles;
 using Microsoft.EntityFrameworkCore;
 
 namespace CmSecurityService.Data;
@@ -14,8 +15,51 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<IncidentType> IncidentTypes => Set<IncidentType>();
     public DbSet<IncidentStatus> IncidentStatuses => Set<IncidentStatus>();
 
+    public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    public DbSet<VehicleTelemetry> VehicleTelemetryRecords => Set<VehicleTelemetry>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
+        b.Entity<Vehicle>(e =>
+        {
+            e.ToTable("vehicle");
+            e.HasKey(x => x.VehicleId);
+            e.Property(x => x.VehicleId).HasColumnName("vehicle_id").HasColumnType("char(36)").ValueGeneratedOnAdd();
+            e.Property(x => x.Callsign).HasColumnName("callsign").HasMaxLength(30).IsRequired();
+            e.Property(x => x.LicensePlate).HasColumnName("license_plate").HasMaxLength(20).IsRequired();
+            e.Property(x => x.Status).HasColumnName("status").HasMaxLength(30)
+                .HasConversion<string>().IsRequired();
+            e.Property(x => x.IsActive).HasColumnName("is_active");
+            e.Property(x => x.CreatedAt).HasColumnName("created_at").HasPrecision(6)
+                .ValueGeneratedOnAdd();
+            e.HasIndex(x => x.Callsign).IsUnique().HasDatabaseName("uq_vehicle_callsign");
+            e.HasIndex(x => x.LicensePlate).IsUnique().HasDatabaseName("uq_vehicle_license_plate");
+        });
+
+        b.Entity<VehicleTelemetry>(e =>
+        {
+            e.ToTable("vehicle_telemetry");
+            e.HasKey(x => x.TelemetryId);
+            e.Property(x => x.TelemetryId).HasColumnName("telemetry_id").ValueGeneratedOnAdd();
+            e.Property(x => x.VehicleId).HasColumnName("vehicle_id").HasColumnType("char(36)").IsRequired();
+            e.Property(x => x.StreetNumber).HasColumnName("street_number").HasMaxLength(10).IsRequired();
+            e.Property(x => x.StreetName).HasColumnName("street_name").HasMaxLength(100).IsRequired();
+            e.Property(x => x.City).HasColumnName("city").HasMaxLength(50).IsRequired();
+            e.Property(x => x.PostalCode).HasColumnName("postal_code").HasMaxLength(7).IsRequired();
+            e.Property(x => x.SpeedKmh).HasColumnName("speed_kmh").HasPrecision(5, 1);
+            e.Property(x => x.HeadingDegrees).HasColumnName("heading_degrees").HasPrecision(5, 2);
+            e.Property(x => x.RecordedAt).HasColumnName("recorded_at").HasPrecision(6);
+            e.Property(x => x.ReceivedAt).HasColumnName("received_at").HasPrecision(6)
+                .ValueGeneratedOnAdd();
+            e.HasOne(x => x.Vehicle).WithMany(v => v.Telemetry)
+                .HasForeignKey(x => x.VehicleId).OnDelete(DeleteBehavior.Restrict);
+            // Latest-record lookup per vehicle; also rejects duplicate (vehicle, timestamp) updates.
+            e.HasIndex(x => new { x.VehicleId, x.RecordedAt })
+                .IsUnique()
+                .IsDescending(false, true)
+                .HasDatabaseName("uq_telemetry_vehicle_recorded");
+        });
+
         b.Entity<IncidentType>(e =>
         {
             e.ToTable("incident_type");

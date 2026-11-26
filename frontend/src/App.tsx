@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import './App.css'
+import VehicleDashboard from './VehicleDashboard'
 
 interface Personnel {
   officerId: string
@@ -49,6 +50,7 @@ const roles = [
 
 function App() {
   const [personnel, setPersonnel] = useState<Personnel[]>([])
+  const [activeView, setActiveView] = useState<'personnel' | 'vehicles'>('personnel')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -83,7 +85,7 @@ function App() {
   }
 
   useEffect(() => {
-    void fetchPersonnel()
+    void Promise.resolve().then(fetchPersonnel)
   }, [])
 
   const handleFormChange = (
@@ -213,15 +215,40 @@ function App() {
           </p>
         </div>
 
-        <button
-          className="refresh-button"
-          onClick={() => void fetchPersonnel()}
-          disabled={loading}
-        >
-          {loading ? 'Loading...' : 'Refresh'}
-        </button>
+        {activeView === 'personnel' && (
+          <button
+            className="refresh-button"
+            onClick={() => void fetchPersonnel()}
+            disabled={loading}
+          >
+            {loading ? 'Loading...' : 'Refresh personnel'}
+          </button>
+        )}
       </header>
 
+      <section className="shared-token-section">
+        <label htmlFor="api-token">API Access JWT *
+          <input
+            id="api-token"
+            type="password"
+            value={token}
+            onChange={(event) => setToken(event.target.value)}
+            placeholder="Paste your officer or administrator JWT"
+            autoComplete="off"
+          />
+        </label>
+        <p>This token is kept only in this page's memory. It is required to access protected vehicle endpoints and perform personnel administration actions.</p>
+      </section>
+
+      <nav className="dashboard-tabs" aria-label="Dashboard sections">
+        <button className={activeView === 'personnel' ? 'selected' : ''} onClick={() => setActiveView('personnel')}>Personnel</button>
+        <button className={activeView === 'vehicles' ? 'selected' : ''} onClick={() => setActiveView('vehicles')}>Police Vehicles</button>
+      </nav>
+
+      {activeView === 'vehicles' ? (
+        <VehicleDashboard token={token} />
+      ) : (
+        <>
       <section className="summary">
         <div className="summary-card">
           <p>Total Personnel</p>
@@ -353,23 +380,6 @@ function App() {
             </label>
           </div>
 
-          <div className="token-field">
-            <label>
-              Security Administrator JWT *
-              <input
-                type="password"
-                value={token}
-                onChange={(event) => setToken(event.target.value)}
-                placeholder="Paste your JWT access token"
-                autoComplete="off"
-              />
-            </label>
-            <p>
-              Temporary testing field. Your token is kept only in this page's
-              memory.
-            </p>
-          </div>
-
           {error && (
             <div className="error-message" role="alert">
               {error}
@@ -490,6 +500,8 @@ function App() {
           </div>
         )}
       </section>
+        </>
+      )}
     </main>
   )
 }
