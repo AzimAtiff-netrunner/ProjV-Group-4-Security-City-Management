@@ -1,30 +1,44 @@
 services:
-  db:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-    volumes:
-      - ./backend/CmSecurityService/Database/security_db.sql:/docker-entrypoint-initdb.d/01-schema.sql
-    ports:
-      - "3307:3306"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prootpassword"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
   security-api:
     build:
       context: ./backend/CmSecurityService
       dockerfile: Dockerfile
     ports:
       - "5228:8080"
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: "8080"
       SecurityService__ServiceName: Security
       SecurityService__ExternalServiceTimeoutSeconds: "10"
-      ConnectionStrings__Default: "Server=db;Database=security_db;User=root;Password=rootpassword"
+      Jwt__Secret: ${JWT_SECRET:?set JWT_SECRET in .env}
+      Jwt__Issue: ${JWT_ISSUE:-CmRegistrationService}
+      Jwt__Audience: ${JWT_AUDIENCE:-CmRegistrationClients}
+      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=security_db;User=security_app;Password=${MYSQL_PASSWORD};GuidFormat=None;"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.4
+    container_name: security-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set password in .env}
+      MYSQL_DATABASE: security_db
+      MYSQL_USER: security_app
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set password in .env}
+    ports:
+      - "3307:3306"
+    volumes:
+      - security_mysql_data:/var/lib/mysql
+      - ./backend/CmSecurityService/Database/security_db.sql:/docker-entrypoint-initdb.d/01-security_db.sql:ro
+      - ./backend/CmSecurityService/Database/dev_seed.sql:/docker-entrypoint-initdb.d/02-dev_seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  security_mysql_data:
